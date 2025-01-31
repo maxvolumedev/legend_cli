@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="legend-cli",
-    version="0.1.0",
+    version="0.1.1",
     description="A CLI for managing Azure Functions, inspired by Ruby on Rails",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -12,11 +12,10 @@ setup(
     include_package_data=True,
     install_requires=[
         "jinja2>=3.1.2",
-        "azure-functions-core-tools>=4.0.5611",
     ],
     entry_points={
         "console_scripts": [
-            "legend=legend.legend:main",
+            "legend=legend.__main__:main",
         ],
     },
     classifiers=[
@@ -30,4 +29,9 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     python_requires=">=3.9",
+    options={
+        "bdist_wheel": {
+            "universal": True
+        }
+    }
 )

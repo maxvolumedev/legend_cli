@@ -6,9 +6,30 @@ from jinja2 import Environment, FileSystemLoader
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
+# Additional dependencies to add to requirements.txt
+ADDITIONAL_DEPS = [
+    "jinja2>=3.1.2",
+    "-e /Users/max/work/legend_cli",
+]
+
+# Development dependencies
+DEV_DEPS = [
+    "pytest>=7.4.0",
+]
+
 def run(args):
     if len(args) < 1:
         print("Usage: legend new <app_name>")
+        return
+
+    # Check if func CLI is installed
+    try:
+        subprocess.run(["func", "--version"], check=True, capture_output=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("Error: Azure Functions Core Tools (func CLI) is not installed.")
+        print("\nTo install:")
+        print("  brew install azure-functions-core-tools@4")
+        print("\nOr visit: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local")
         return
 
     app_name = args[0]
@@ -20,12 +41,21 @@ def run(args):
     # Change to app directory
     os.chdir(app_name)
 
-    # Remove requirements.txt since we'll create our own
-    if os.path.exists("requirements.txt"):
-        os.remove("requirements.txt")
+    # Append our additional dependencies to requirements.txt
+    with open("requirements.txt", "a") as f:
+        f.write("\n# Additional dependencies added by Legend CLI\n")
+        for dep in ADDITIONAL_DEPS:
+            f.write(f"{dep}\n")
+
+    # Create requirements-dev.txt
+    with open("requirements-dev.txt", "w") as f:
+        f.write("-r requirements.txt\n\n")
+        f.write("# Development dependencies\n")
+        for dep in DEV_DEPS:
+            f.write(f"{dep}\n")
 
     # Initialize Git
-    subprocess.run(["git", "init"], check=True)
+    # subprocess.run(["git", "init"], check=True)
 
     # Set up Jinja environment
     env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
@@ -35,10 +65,8 @@ def run(args):
         with open(output_path, "w") as f:
             f.write(template.render(app_name=app_name))
 
-    # Create setup.py and requirements files from templates
+    # Create setup.py from template
     render_template("setup.py", "setup.py")
-    render_template("requirements.txt", "requirements.txt")
-    render_template("requirements-dev.txt", "requirements-dev.txt")
 
     # Create directories
     os.makedirs(".github/workflows", exist_ok=True)
@@ -47,11 +75,12 @@ def run(args):
 
     # Create and activate virtual environment
     print("Creating virtual environment...")
-    venv.create(".venv", with_pip=True)
+    subprocess.run(["python", "-m", "venv", ".venv"], check=True)
     
     # Install dependencies
     venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
-    subprocess.run([venv_python, "-m", "pip", "install", "-e", ".[dev]"], check=True)
+    subprocess.run([venv_python, "-m", "pip", "install", "-r", "requirements-dev.txt"], check=True)
+    subprocess.run([venv_python, "-m", "pip", "install", "-e", "."], check=True)
 
     # Add a note about pip in the README
     with open("README.md", "a") as f:
@@ -81,7 +110,6 @@ pip install -r requirements-dev.txt  # Install development dependencies
 
 ```bash
 pip install -e .      # Install the package in editable mode
-pip install -e .[dev] # Install with development dependencies
 ```
 
 ### Running Tests
@@ -96,6 +124,25 @@ pytest
 func start
 ```
 ''')
+
+    # Create bin directory and legend binstub
+    bin_dir = Path("bin")
+    bin_dir.mkdir(exist_ok=True)
+
+    legend_binstub = bin_dir / "legend"
+    with open(legend_binstub, "w") as f:
+        f.write("""#!/bin/bash
+# Binstub for running Legend CLI commands
+
+# Activate the virtual environment
+source .venv/bin/activate
+
+# Run the Legend CLI command
+python -m legend "$@"
+""")
+
+    # Make the binstub executable
+    legend_binstub.chmod(0o755)
 
     # Render GitHub workflow
     render_template("workflows/deploy.yml", ".github/workflows/deploy.yml")

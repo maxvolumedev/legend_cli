@@ -5,8 +5,25 @@ A command-line interface for managing Azure Functions, inspired by Ruby on Rails
 ## Prerequisites
 
 - Python 3.9 or higher
-- Azure Functions Core Tools
+- Node.js and npm (for Azure Functions Core Tools)
 - Git
+
+### Installing Azure Functions Core Tools
+
+The Azure Functions Core Tools are required to create and run Azure Functions locally. Install them using npm:
+
+```bash
+npm install -g azure-functions-core-tools@4
+```
+
+Or using Homebrew on macOS:
+
+```bash
+brew tap azure/functions
+brew install azure-functions-core-tools@4
+```
+
+For other installation methods, see the [official documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local).
 
 ## Installation
 
@@ -33,6 +50,29 @@ pip install -e /path/to/legend_cli[dev]
 ```
 
 This will install the `legend` command globally, but use your local source code, allowing you to test changes immediately without rebuilding or republishing.
+
+## Running the CLI
+
+There are several ways to run the Legend CLI:
+
+1. **Using the installed command** (after pip install):
+   ```bash
+   legend new my-app
+   ```
+
+2. **Using Python module syntax**:
+   ```bash
+   python -m legend new my-app
+   ```
+
+3. **During development** (from the source directory):
+   ```bash
+   # Using the development script
+   ./bin/legend new my-app
+   
+   # Or using Python directly
+   PYTHONPATH=/path/to/legend_cli python -m legend new my-app
+   ```
 
 ### Development Setup
 
@@ -93,6 +133,26 @@ This will:
 - Create a new Azure Function
 - Generate function code from template
 - Create corresponding test file
+
+### Function Templates
+
+The following function templates are available:
+
+* HTTP trigger
+* Queue trigger
+* Timer trigger
+
+You can specify a template when generating a new function:
+
+```bash
+legend generate function my_function --template "Queue trigger"
+```
+
+To see all available templates:
+
+```bash
+func templates list
+```
 
 ### Run the Function App locally
 
