@@ -59,7 +59,7 @@ def run(args):
             f.write(f"{dep}\n")
 
     # Initialize Git
-    # subprocess.run(["git", "init"], check=True)
+    subprocess.run(["git", "init"], check=True)
 
     # Set up Jinja environment
     env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))

@@ -1,6 +1,6 @@
 # Legend CLI
 
-A command-line interface for managing Azure Functions, inspired by Ruby on Rails.
+A command-line interface for managing Trade Ledger integration adapters with Azure Functions.
 
 ## Prerequisites
 
@@ -35,7 +35,7 @@ The simplest way to install Legend CLI is via pip:
 pip install legend-cli
 ```
 
-This will install the `legend` command globally, similar to how `gem install rails` works.
+This will install the `legend` command globally.
 
 ### Option 2: Install from Source
 
