@@ -1,9 +1,14 @@
 import subprocess
 import sys
 import os
+import argparse
 
 def run(args):
+    parser = argparse.ArgumentParser(description='Run tests with pytest')
+    parser.add_argument('pytest_args', nargs='*', help='Arguments to pass to pytest')
+    args = parser.parse_args(args)
+
     print("Running tests with pytest...")
     venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
-    result = subprocess.run([venv_python, "-m", "pytest"] + args, check=False)
+    result = subprocess.run([venv_python, "-m", "pytest"] + args.pytest_args, check=False)
     sys.exit(result.returncode)

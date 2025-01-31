@@ -12,6 +12,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "jinja2>=3.1.2",
+        "azure-functions",
     ],
     entry_points={
         "console_scripts": [

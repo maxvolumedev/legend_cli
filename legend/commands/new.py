@@ -1,6 +1,7 @@
 import os
 import subprocess
 import venv
+import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -18,8 +19,12 @@ DEV_DEPS = [
 ]
 
 def run(args):
-    if len(args) < 1:
-        print("Usage: legend new <app_name>")
+    parser = argparse.ArgumentParser(description='Create a new Azure Function App')
+    parser.add_argument('name', help='Name of the function app')
+    args = parser.parse_args(args)
+
+    if not args.name:
+        parser.print_help()
         return
 
     # Check if func CLI is installed
@@ -32,14 +37,13 @@ def run(args):
         print("\nOr visit: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local")
         return
 
-    app_name = args[0]
-    print(f"Creating new Azure Function App: {app_name}")
+    print(f"Creating new Azure Function App: {args.name}")
 
     # Initialize Azure Function
-    subprocess.run(["func", "init", app_name, "--worker-runtime", "python"], check=True)
+    subprocess.run(["func", "init", args.name, "--worker-runtime", "python"], check=True)
 
     # Change to app directory
-    os.chdir(app_name)
+    os.chdir(args.name)
 
     # Append our additional dependencies to requirements.txt
     with open("requirements.txt", "a") as f:
@@ -63,7 +67,7 @@ def run(args):
     def render_template(template_path, output_path):
         template = env.get_template(template_path)
         with open(output_path, "w") as f:
-            f.write(template.render(app_name=app_name))
+            f.write(template.render(app_name=args.name))
 
     # Create setup.py from template
     render_template("setup.py", "setup.py")
@@ -154,8 +158,8 @@ python -m legend "$@"
             relative_path = template.relative_to(lib_templates)
             render_template(f"lib/{relative_path}", f"lib/{relative_path}")
 
-    print(f"✨ New function app '{app_name}' created successfully!")
+    print(f"✨ New function app '{args.name}' created successfully!")
     print("\nTo get started:")
-    print(f"  cd {app_name}")
+    print(f"  cd {args.name}")
     print("  source .venv/bin/activate    # Activate virtual environment")
     print("  func start                   # Start the function app")

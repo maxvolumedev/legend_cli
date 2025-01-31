@@ -2,67 +2,57 @@
 
 import sys
 import os
+import argparse
 from legend.commands import new, generate, run, test, console
-
-COMMANDS = {
-    "new": new.run,
-    "generate": generate.run,
-    "run": run.run,
-    "test": test.run,
-    "console": console.run,
-}
 
 def main():
     # Change to the directory where the legend command was invoked
     if 'LEGEND_CWD' in os.environ:
         os.chdir(os.environ['LEGEND_CWD'])
 
-    if len(sys.argv) < 2:
-        print("Usage: legend <command> [arguments]")
-        print("\nAvailable commands:")
-        # Group full commands with their aliases
-        command_groups = {}
-        for key, value in COMMANDS.items():
-            if value not in command_groups:
-                command_groups[value] = []
-            command_groups[value].append(key)
-        
-        for cmds in command_groups.values():
-            full_cmd = max(cmds, key=len)  # Get the longest (full) command name
-            aliases = [c for c in cmds if c != full_cmd]
-            if aliases:
-                print(f"  {full_cmd} ({', '.join(aliases)})")
-            else:
-                print(f"  {full_cmd}")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Legend CLI - A Rails-inspired CLI for Azure Functions'
+    )
+    subparsers = parser.add_subparsers(dest='command', required=True)
 
-    command = sys.argv[1].lower()
-    args = sys.argv[2:]
-
-    # First try exact match
-    if command in COMMANDS:
-        COMMANDS[command](args)
-        return
-
-    # Then try prefix match
-    matching_commands = [key for key in COMMANDS.keys() if key.startswith(command)]
+    # New command
+    new_parser = subparsers.add_parser('new', help='Create a new Azure Function App')
     
-    if len(matching_commands) == 0:
-        print(f"Unknown command: {command}")
-        print("\nDid you mean one of these?")
-        # Find similar commands (contains the input)
-        similar = [key for key in COMMANDS.keys() if command in key]
-        if similar:
-            for cmd in similar:
-                print(f"  {cmd}")
-        sys.exit(1)
-    elif len(matching_commands) > 1:
-        print(f"Ambiguous command '{command}'. Could mean:")
-        for cmd in matching_commands:
-            print(f"  {cmd}")
-        sys.exit(1)
+    # Generate command
+    gen_parser = subparsers.add_parser('generate', aliases=['g'], help='Generate new code')
     
-    COMMANDS[matching_commands[0]](args)
+    # Run command
+    run_parser = subparsers.add_parser('run', aliases=['r'], help='Run the Function App locally')
+    
+    # Test command
+    test_parser = subparsers.add_parser('test', aliases=['t'], help='Run tests')
+    
+    # Console command
+    console_parser = subparsers.add_parser('console', aliases=['c'], help='Start an interactive Python console')
+
+    # If no args, show help
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    # Parse known args to get the command
+    args, remaining = parser.parse_known_args()
+
+    # Map commands to their handlers
+    COMMANDS = {
+        'new': new.run,
+        'generate': generate.run,
+        'g': generate.run,
+        'run': run.run,
+        'r': run.run,
+        'test': test.run,
+        't': test.run,
+        'console': console.run,
+        'c': console.run,
+    }
+
+    # Run the command with remaining args
+    COMMANDS[args.command](remaining)
 
 if __name__ == "__main__":
     main()

@@ -2,45 +2,40 @@ import os
 import subprocess
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-import re
+import argparse
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
 def run(args):
-    if len(args) < 2 or args[0] not in ["function", "f"]:
-        print("Usage: legend generate function <function_name> [--template <template_name>]")
-        print("\nRun 'func templates list' to see available templates")
-        return
+    parser = argparse.ArgumentParser(description='Generate a new Azure Function')
+    subparsers = parser.add_subparsers(dest='type', required=True)
 
-    function_name = args[1]
+    # Function subcommand
+    func_parser = subparsers.add_parser('function', aliases=['f'], help='Generate a new function')
+    func_parser.add_argument('name', help='Name of the function')
+    func_parser.add_argument('--template', '-t', default='HTTP trigger', 
+                          help='Function template to use (default: HTTP trigger)')
+
+    args = parser.parse_args(args)
     
-    # Check if function already exists
-    if os.path.exists(function_name):
-        print(f"Error: Function '{function_name}' already exists")
-        return
+    if args.type in ['function', 'f']:
+        print(f"Generating function: {args.name} (template: {args.template})")
 
-    # Parse template argument
-    template = "HTTP trigger"  # default
-    if len(args) > 2 and args[2] == "--template" and len(args) > 3:
-        template = args[3]
+        # Run func new
+        subprocess.run(["func", "new", "--name", args.name, "--template", args.template], check=True)
 
-    print(f"Generating function: {function_name} (template: {template})")
+        # Render templates
+        env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
+        print(f"Template directory: {TEMPLATES_DIR}")
 
-    # Run func new
-    subprocess.run(["func", "new", "--name", function_name, "--template", template], check=True)
+        def render_template(template_path, output_path):
+            print(f"Rendering {template_path} -> {output_path}")
+            template = env.get_template(template_path)
+            with open(output_path, "w") as f:
+                f.write(template.render(function_name=args.name))
 
-    # Render templates
-    env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
-    print(f"Template directory: {TEMPLATES_DIR}")
+        # Create test file
+        os.makedirs("test/functions", exist_ok=True)
+        render_template("test/function.py", f"test/functions/{args.name}_test.py")
 
-    def render_template(template_path, output_path):
-        print(f"Rendering {template_path} -> {output_path}")
-        template = env.get_template(template_path)
-        with open(output_path, "w") as f:
-            f.write(template.render(function_name=function_name))
-
-    # Create test file
-    os.makedirs("test/functions", exist_ok=True)
-    render_template("test/function.py", f"test/functions/{function_name}_test.py")
-
-    print(f"✨ Function '{function_name}' generated successfully!")
+        print(f"✨ Function '{args.name}' generated successfully!")

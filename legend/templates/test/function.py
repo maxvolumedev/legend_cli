@@ -1,18 +1,17 @@
 import azure.functions as func
-import json
-from {{ function_name }} import main
+from function_app import {{ function_name }}
 
-def test_function_success():
+def test_{{ function_name }}_success():
     # Construct a mock HTTP request
     req = func.HttpRequest(
         method='GET',
         body=None,
         url='/api/{{ function_name }}',
-        params={}
+        params={'name': 'Test'}
     )
 
     # Call the function
-    resp = main(req)
+    resp = {{ function_name }}(req)
 
     # Check the response
     assert resp.status_code == 200
