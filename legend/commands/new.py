@@ -1,5 +1,6 @@
 import os
 import subprocess
+import venv
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -19,45 +20,82 @@ def run(args):
     # Change to app directory
     os.chdir(app_name)
 
+    # Remove requirements.txt since we'll create our own
+    if os.path.exists("requirements.txt"):
+        os.remove("requirements.txt")
+
     # Initialize Git
     subprocess.run(["git", "init"], check=True)
 
-    # Setup Poetry
-    with open("pyproject.toml", "w") as f:
-        f.write(f'''[tool.poetry]
-name = "{app_name}"
-version = "0.1.0"
-description = "Azure Functions App"
-authors = []
-
-[tool.poetry.dependencies]
-python = "^3.9"
-azure-functions = "^1.17.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-jinja2 = "^3.1.2"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-''')
-
-    # Create directories
-    os.makedirs(".github/workflows", exist_ok=True)
-    os.makedirs("test", exist_ok=True)
-    os.makedirs("lib", exist_ok=True)
-
-    # Initialize Poetry and install dependencies
-    subprocess.run(["poetry", "install"], check=True)
-
-    # Render templates
+    # Set up Jinja environment
     env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
     
     def render_template(template_path, output_path):
         template = env.get_template(template_path)
         with open(output_path, "w") as f:
             f.write(template.render(app_name=app_name))
+
+    # Create setup.py and requirements files from templates
+    render_template("setup.py", "setup.py")
+    render_template("requirements.txt", "requirements.txt")
+    render_template("requirements-dev.txt", "requirements-dev.txt")
+
+    # Create directories
+    os.makedirs(".github/workflows", exist_ok=True)
+    os.makedirs("test", exist_ok=True)
+    os.makedirs("lib", exist_ok=True)
+
+    # Create and activate virtual environment
+    print("Creating virtual environment...")
+    venv.create(".venv", with_pip=True)
+    
+    # Install dependencies
+    venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
+    subprocess.run([venv_python, "-m", "pip", "install", "-e", ".[dev]"], check=True)
+
+    # Add a note about pip in the README
+    with open("README.md", "a") as f:
+        f.write('''
+
+## Development
+
+This project uses pip for dependency management.
+
+### Virtual Environment
+
+The project comes with a virtual environment in the `.venv` directory. To activate it:
+
+```bash
+source .venv/bin/activate  # On Unix/macOS
+.venv\\Scripts\\activate    # On Windows
+```
+
+### Installing Dependencies
+
+```bash
+pip install -r requirements.txt      # Install runtime dependencies
+pip install -r requirements-dev.txt  # Install development dependencies
+```
+
+### Installing in Development Mode
+
+```bash
+pip install -e .      # Install the package in editable mode
+pip install -e .[dev] # Install with development dependencies
+```
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Running the Function Locally
+
+```bash
+func start
+```
+''')
 
     # Render GitHub workflow
     render_template("workflows/deploy.yml", ".github/workflows/deploy.yml")
@@ -70,3 +108,7 @@ build-backend = "poetry.core.masonry.api"
             render_template(f"lib/{relative_path}", f"lib/{relative_path}")
 
     print(f"✨ New function app '{app_name}' created successfully!")
+    print("\nTo get started:")
+    print(f"  cd {app_name}")
+    print("  source .venv/bin/activate    # Activate virtual environment")
+    print("  func start                   # Start the function app")

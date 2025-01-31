@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Get the project root directory (parent of bin/)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Store current directory
+CURRENT_DIR="$(pwd)"
+
+# Run the legend command from the project's Python environment, but preserve the current working directory
+PYTHONPATH="$PROJECT_ROOT" LEGEND_CWD="$CURRENT_DIR" python -m legend.legend "$@"
