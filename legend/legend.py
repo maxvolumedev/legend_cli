@@ -3,7 +3,7 @@
 import sys
 import os
 import argparse
-from legend.commands import new, generate, run, test, console, provision, deploy
+from legend.commands import new, generate, run, test, console, provision, deploy, bootstrap
 
 def main():
     # Change to the directory where the legend command was invoked
@@ -36,6 +36,9 @@ def main():
     # Deploy command
     deploy_parser = subparsers.add_parser('deploy', help='Deploy the Function App to Azure')
 
+    # Bootstrap command
+    bootstrap_parser = subparsers.add_parser('bootstrap', help='Check and install dependencies')
+
     # If no args, show help
     if len(sys.argv) == 1:
         parser.print_help()
@@ -57,7 +60,8 @@ def main():
         'c': console.run,
         'provision': provision.run,
         'p': provision.run,
-        'deploy': deploy.run
+        'deploy': deploy.run,
+        'bootstrap': bootstrap.run
     }
 
     # Run the command with remaining args

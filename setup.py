@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="legend-cli",
     version="0.1.3",
-    description="A CLI for managing Azure Functions, inspired by Ruby on Rails",
+    description="A CLI for managing Azure Functions",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="",
@@ -29,6 +29,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
+        "Operating System :: MacOS :: MacOS X",  # Added since we only support macOS for now
     ],
     python_requires=">=3.9",
     options={
