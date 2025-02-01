@@ -5,8 +5,8 @@
 app_name = "{{ app_name }}"
 
 [azure]
-# Global Azure configuration - environment-specific configuration in <environment>.toml files
-location = "" # get full list via `az account list-locations -o table`
+# Azure region to deploy to
+location = "{{ azure_location }}"
 log_analytics_workspace = "{{ app_name }}-log-analytics-workspace"
 
 [api]

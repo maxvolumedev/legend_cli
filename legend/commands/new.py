@@ -19,9 +19,27 @@ DEV_DEPS = [
     "pytest>=7.4.0",
 ]
 
+def normalize_name(name: str) -> str:
+    """Normalize app name: lowercase and replace underscores with hyphens"""
+    return name.lower().replace('_', '-')
+
+def get_storage_name(app_name: str, env: str) -> str:
+    """Generate storage account name: app + env, alphanumeric only, max 24 chars"""
+    # Remove hyphens and combine
+    name = f"{app_name}{env}".replace('-', '')
+    # Remove any non-letter characters
+    name = re.sub(r'[^a-z0-9]', '', name.lower())
+    # Clamp to 24 characters
+    return name[:24]
+
+def get_keyvault_name(app_name: str, env: str) -> str:
+    """Generate key vault name: app + env + kv, remove hyphens"""
+    return f"{app_name}{env}kv".replace('-', '')
+
 def run(args):
     parser = argparse.ArgumentParser(description='Create a new Azure Function App')
     parser.add_argument('name', help='Name of the function app')
+    parser.add_argument('location', help='Azure location to create the function app in', nargs='?', default='australiasoutheast')
     args = parser.parse_args(args)
 
     if not args.name:
@@ -82,7 +100,10 @@ def run(args):
     # Create global application config
     template = jinja_env.get_template("config/application.toml")
     with open("config/application.toml", "w") as f:
-        f.write(template.render(app_name=args.name))
+        f.write(template.render(
+            app_name=normalize_name(args.name),
+            azure_location=args.location
+        ))
 
     # Create environment configuration files
     environments = ["development", "test", "sit", "uat", "production"]
@@ -90,7 +111,15 @@ def run(args):
         config_file = f"config/{environment}.toml"
         template = jinja_env.get_template("config/environment.toml")
         with open(config_file, "w") as f:
-            f.write(template.render(app_name=args.name, environment=environment))
+            f.write(template.render(
+                app_name=normalize_name(args.name),
+                environment=environment,
+                resource_group=f"{normalize_name(args.name)}-group-{environment}",
+                storage_account=get_storage_name(normalize_name(args.name), environment),
+                function_app=f"{normalize_name(args.name)}-{environment}",
+                app_service_plan=f"{normalize_name(args.name)}-plan-{environment}",
+                key_vault_name=get_keyvault_name(normalize_name(args.name), environment)
+            ))
 
     # Copy lib templates
     lib_templates = Path(TEMPLATES_DIR) / "lib"

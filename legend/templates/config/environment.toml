@@ -1,10 +1,20 @@
 # {{ environment | upper }} Environment Configuration
 
 [azure]
-resource_group = "{{ app_name }}-group-{{ environment }}"
-storage_account = "{{ app_name }}{{ environment }}" # must be lowercase letters only, and max of 24 characters
-app_service_plan = "{{ app_name }}-plan-{{ environment }}"
-key_vault_name = "{{ app_name }}-vault-{{ environment }}"
+# Resource group name
+resource_group = "{{ resource_group }}"
+
+# Storage account name (must be globally unique, lowercase alphanumeric, max 24 chars)
+storage_account = "{{ storage_account }}"
+
+# Function app name (must be globally unique)
+function_app = "{{ function_app }}"
+
+# App Service Plan name
+app_service_plan = "{{ app_service_plan }}"
+
+# Key Vault name (must be globally unique)
+key_vault_name = "{{ key_vault_name }}"
 
 
 [api]
