@@ -16,7 +16,7 @@ def load_config(environment: str) -> Dict[str, Any]:
     
     # Check if we're in a Legend app directory
     if not config_dir.exists():
-        print("Error: Not in a Legend application directory (config/ not found)")
+        print("⛔️ Error: Not in a Legend application directory (config/ not found)")
         sys.exit(1)
     
     try:
@@ -31,10 +31,10 @@ def load_config(environment: str) -> Dict[str, Any]:
         # Merge configurations (environment config takes precedence)
         return deep_merge(global_config, env_config)
     except FileNotFoundError as e:
-        print(f"Error: Configuration file not found: {e.filename}")
+        print(f"⛔️ Error: Configuration file not found: {e.filename}")
         sys.exit(1)
     except tomli.TOMLDecodeError as e:
-        print(f"Error: Invalid TOML syntax in configuration: {e}")
+        print(f"⛔️ Error: Invalid TOML syntax in configuration: {e}")
         sys.exit(1)
 
 def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
@@ -69,7 +69,7 @@ def validate_config(config: Dict[str, Any]) -> bool:
             missing.append(f"azure.{key}")
     
     if missing:
-        print("Error: Missing required configuration values:")
+        print("⛔️ Error: Missing required configuration values:")
         for path in missing:
             print(f"  - {path}")
         print("\nPlease update config/application.toml and config/{{ environment }}.toml with the required values.")
@@ -110,14 +110,14 @@ def provision_environment(environment: str):
             existing_location = result.stdout.strip().lower()
             desired_location = config['azure']['location'].lower()
             if existing_location != desired_location:
-                print(f"Error: Resource group '{config['azure']['resource_group']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
+                print(f"⛔️ Error: Resource group '{config['azure']['resource_group']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
                 print("Please either:")
                 print(f"1. Update the location in your config to '{existing_location}'")
                 print(f"2. Delete the existing resource group and run provision again to create it in '{desired_location}'")
                 return
             print(f"Resource group '{config['azure']['resource_group']}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to create resource group")
+        print("⛔️ Error: Failed to create resource group")
         print(f"Details: {e}")
         return
 
@@ -145,14 +145,14 @@ def provision_environment(environment: str):
             existing_location = result.stdout.strip().lower()
             desired_location = config['azure']['location'].lower()
             if existing_location != desired_location:
-                print(f"Error: Storage account '{storage_account_name}' exists in location '{existing_location}', but we need it in '{desired_location}'")
+                print(f"⛔️ Error: Storage account '{storage_account_name}' exists in location '{existing_location}', but we need it in '{desired_location}'")
                 print("Please either:")
                 print(f"1. Update the location in your config to '{existing_location}'")
                 print(f"2. Delete the existing storage account and run provision again to create it in '{desired_location}'")
                 return
             print(f"Storage account '{storage_account_name}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to create storage account")
+        print("⛔️ Error: Failed to create storage account")
         print(f"Details: {e}")
         return
 
@@ -181,14 +181,14 @@ def provision_environment(environment: str):
             existing_location = result.stdout.strip().lower()
             desired_location = config['azure']['location'].lower()
             if existing_location != desired_location:
-                print(f"Error: App Service Plan '{config['azure']['app_service_plan']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
+                print(f"⛔️ Error: App Service Plan '{config['azure']['app_service_plan']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
                 print("Please either:")
                 print(f"1. Update the location in your config to '{existing_location}'")
                 print(f"2. Delete the existing App Service Plan and run provision again to create it in '{desired_location}'")
                 return
             print(f"App Service Plan '{config['azure']['app_service_plan']}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to create App Service Plan")
+        print("⛔️ Error: Failed to create App Service Plan")
         print(f"Details: {e}")
         return
 
@@ -217,7 +217,7 @@ def provision_environment(environment: str):
         else:
             print(f"Function App '{config['azure']['app_name']}' already exists")
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to create Function App")
+        print("⛔️ Error: Failed to create Function App")
         print(f"Details: {e}")
         return
 
@@ -250,10 +250,10 @@ def provision_environment(environment: str):
                 "-o", "tsv"
             ], capture_output=True, text=True, check=True)
             if result.stdout.strip().lower() == 'true':
-                print("Error: Key Vault is configured with RBAC authorization. Please use a vault with access policies.")
+                print("⛔️ Error: Key Vault is configured with RBAC authorization. Please use a vault with access policies.")
                 return
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to create/check Key Vault")
+        print("⛔️ Error: Failed to create/check Key Vault")
         print(f"Details: {e}")
         return
 
@@ -271,7 +271,7 @@ def provision_environment(environment: str):
         principal_id = result.stdout.strip()
         
         if not principal_id:
-            print("Error: Failed to get function app's managed identity")
+            print("⛔️ Error: Failed to get function app's managed identity")
             return
         
         # Set Key Vault policy
@@ -282,7 +282,7 @@ def provision_environment(environment: str):
             "--object-id", principal_id
         ], check=True)
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to configure Key Vault access")
+        print("⛔️ Error: Failed to configure Key Vault access")
         print(f"Details: {e}")
         return
 
@@ -307,7 +307,7 @@ def provision_environment(environment: str):
                 "--workspace-name", config['azure']['log_analytics_workspace']
             ], check=True)
     except subprocess.CalledProcessError:
-        print("Error: Failed to create Log Analytics Workspace")
+        print("⛔️ Error: Failed to create Log Analytics Workspace")
         return
 
     # Create Application Insights
@@ -342,7 +342,7 @@ def provision_environment(environment: str):
             f"APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey={instrumentation_key}"
         ], check=True)
     except subprocess.CalledProcessError as e:
-        print("Error: Failed to configure Application Insights")
+        print("⛔️ Error: Failed to configure Application Insights")
         print(f"Details: {e}")
         return
 
@@ -361,7 +361,7 @@ def check_az_cli() -> bool:
         subprocess.run(["az", "--version"], check=True, capture_output=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Error: Azure CLI is not installed.")
+        print("⛔️ Error: Azure CLI is not installed.")
         print("\nTo install:")
         print("  brew update && brew install azure-cli")
         print("\nOr visit: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli")
@@ -379,7 +379,7 @@ def az_login() -> bool:
             subprocess.run(["az", "login"], check=True)
             return True
         except subprocess.CalledProcessError:
-            print("Error: Failed to log in to Azure.")
+            print("⛔️ Error: Failed to log in to Azure.")
             return False
 
 def register_providers() -> List[str]:
@@ -396,7 +396,7 @@ def register_providers() -> List[str]:
         try:
             subprocess.run(["az", "provider", "register", "--namespace", provider], check=True)
         except subprocess.CalledProcessError:
-            print(f"Error: Failed to register provider {provider}")
+            print(f"⛔️ Error: Failed to register provider {provider}")
             return []
     
     return providers
@@ -425,7 +425,7 @@ def wait_for_providers(providers: List[str]):
                 else:
                     print(f"⋯ {provider} is {state}")
             except subprocess.CalledProcessError:
-                print(f"Error: Failed to check status of {provider}")
+                print(f"⛔️ Error: Failed to check status of {provider}")
                 providers.remove(provider)
         
         if providers:
