@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="legend-cli",
-    version="0.1.1",
+    version="0.1.3",
     description="A CLI for managing Azure Functions, inspired by Ruby on Rails",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -13,6 +13,7 @@ setup(
     install_requires=[
         "jinja2>=3.1.2",
         "azure-functions",
+        "tomli>=2.0.1",  # For reading TOML configuration files
     ],
     entry_points={
         "console_scripts": [

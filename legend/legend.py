@@ -3,7 +3,7 @@
 import sys
 import os
 import argparse
-from legend.commands import new, generate, run, test, console
+from legend.commands import new, generate, run, test, console, provision
 
 def main():
     # Change to the directory where the legend command was invoked
@@ -29,6 +29,9 @@ def main():
     
     # Console command
     console_parser = subparsers.add_parser('console', aliases=['c'], help='Start an interactive Python console')
+    
+    # Provision command
+    provision_parser = subparsers.add_parser('provision', aliases=['p'], help='Provision Azure resources')
 
     # If no args, show help
     if len(sys.argv) == 1:
@@ -49,6 +52,8 @@ def main():
         't': test.run,
         'console': console.run,
         'c': console.run,
+        'provision': provision.run,
+        'p': provision.run,
     }
 
     # Run the command with remaining args

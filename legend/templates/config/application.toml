@@ -1,0 +1,15 @@
+# Global Application Configuration
+
+[settings]
+# Global application settings
+app_name = "{{ app_name }}"
+
+[azure]
+# Global Azure configuration - environment-specific configuration in <environment>.toml files
+location = "" # get full list via `az account list-locations -o table`
+log_analytics_workspace = "{{ app_name }}-log-analytics-workspace"
+
+[api]
+# Global API configuration
+timeout_seconds = 30
+retry_attempts = 3

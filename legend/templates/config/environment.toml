@@ -1,0 +1,16 @@
+# {{ environment | upper }} Environment Configuration
+
+[azure]
+resource_group = "{{ app_name }}-group-{{ environment }}"
+storage_account = "{{ app_name }}{{ environment }}" # must be lowercase letters only, and max of 24 characters
+app_service_plan = "{{ app_name }}-plan-{{ environment }}"
+key_vault_name = "{{ app_name }}-vault-{{ environment }}"
+
+
+[api]
+# External API endpoints for {{ environment }} environment
+# endpoint_1.base_url = "https://api.example.com/{{ environment }}"
+
+[settings]
+# Add any additional configuration parameters here
+# debug = {{ "true" if environment in ["development", "test"] else "false" }}

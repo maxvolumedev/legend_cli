@@ -11,6 +11,7 @@ TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 ADDITIONAL_DEPS = [
     "jinja2>=3.1.2",
     "-e /Users/max/work/legend_cli",
+    "tomli>=2.0.1  # For reading TOML configuration files",
 ]
 
 # Development dependencies
@@ -47,7 +48,7 @@ def run(args):
 
     # Append our additional dependencies to requirements.txt
     with open("requirements.txt", "a") as f:
-        f.write("\n# Additional dependencies added by Legend CLI\n")
+        f.write("\n\n# Additional dependencies added by Legend CLI\n")
         for dep in ADDITIONAL_DEPS:
             f.write(f"{dep}\n")
 
@@ -62,10 +63,10 @@ def run(args):
     subprocess.run(["git", "init"], check=True)
 
     # Set up Jinja environment
-    env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
+    jinja_env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
     
     def render_template(template_path, output_path):
-        template = env.get_template(template_path)
+        template = jinja_env.get_template(template_path)
         with open(output_path, "w") as f:
             f.write(template.render(app_name=args.name))
 
@@ -76,6 +77,36 @@ def run(args):
     os.makedirs(".github/workflows", exist_ok=True)
     os.makedirs("test", exist_ok=True)
     os.makedirs("lib", exist_ok=True)
+    os.makedirs("config", exist_ok=True)
+
+    # Create global application config
+    template = jinja_env.get_template("config/application.toml")
+    with open("config/application.toml", "w") as f:
+        f.write(template.render(app_name=args.name))
+
+    # Create environment configuration files
+    environments = ["development", "test", "sit", "uat", "production"]
+    for environment in environments:
+        config_file = f"config/{environment}.toml"
+        template = jinja_env.get_template("config/environment.toml")
+        with open(config_file, "w") as f:
+            f.write(template.render(app_name=args.name, environment=environment))
+
+    # Copy lib templates
+    lib_templates = Path(TEMPLATES_DIR) / "lib"
+    if lib_templates.exists():
+        for template_path in lib_templates.rglob("*"):
+            if template_path.is_file():
+                relative_path = template_path.relative_to(lib_templates)
+                target_path = Path("lib") / relative_path
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                if template_path.suffix == ".py":
+                    template = jinja_env.get_template(str(Path("lib") / relative_path))
+                    with open(target_path, "w") as f:
+                        f.write(template.render(app_name=args.name))
+                else:
+                    import shutil
+                    shutil.copy2(template_path, target_path)
 
     # Create and activate virtual environment
     print("Creating virtual environment...")
@@ -93,6 +124,27 @@ def run(args):
 ## Development
 
 This project uses pip for dependency management.
+
+### Environment Configuration
+
+The application supports multiple environments: development, test, sit, uat, and production. Configuration for each environment is stored in TOML files under the `config/` directory.
+
+To specify the environment:
+```bash
+export LEGEND_ENVIRONMENT=development  # Or test, sit, uat, production
+```
+
+If not specified, the environment defaults to `development`.
+
+To access configuration in your code:
+```python
+from lib.config import config
+
+# Access configuration values
+key_vault_name = config.azure.key_vault_name
+api_base_url = config.api.base_url
+debug_mode = config.settings.debug
+```
 
 ### Virtual Environment
 
@@ -150,13 +202,6 @@ python -m legend "$@"
 
     # Render GitHub workflow
     render_template("workflows/deploy.yml", ".github/workflows/deploy.yml")
-
-    # Render lib templates
-    lib_templates = Path(TEMPLATES_DIR) / "lib"
-    if lib_templates.exists():
-        for template in lib_templates.glob("*"):
-            relative_path = template.relative_to(lib_templates)
-            render_template(f"lib/{relative_path}", f"lib/{relative_path}")
 
     print(f"✨ New function app '{args.name}' created successfully!")
     print("\nTo get started:")
