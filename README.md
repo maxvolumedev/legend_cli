@@ -1,6 +1,6 @@
 # Legend CLI
 
-A command-line interface for managing Trade Ledger integration adapters with Azure Functions.
+A command-line interface for managing Azure Function apps
 
 ## Prerequisites
 

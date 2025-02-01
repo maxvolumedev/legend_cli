@@ -10,7 +10,7 @@ TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 # Additional dependencies to add to requirements.txt
 ADDITIONAL_DEPS = [
     "jinja2>=3.1.2",
-    "-e /Users/max/work/legend_cli",
+    "https://github.com/maxvolumedev/legend_cli.git",
     "tomli>=2.0.1  # For reading TOML configuration files",
 ]
 
