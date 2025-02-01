@@ -5,180 +5,209 @@ A command-line interface for managing Azure Function apps
 ## Prerequisites
 
 - Python 3.9 or higher
-- Node.js and npm (for Azure Functions Core Tools)
-- Git
-
-### Installing Azure Functions Core Tools
-
-The Azure Functions Core Tools are required to create and run Azure Functions locally. Install them using npm:
-
-```bash
-npm install -g azure-functions-core-tools@4
-```
-
-Or using Homebrew on macOS:
-
-```bash
-brew tap azure/functions
-brew install azure-functions-core-tools@4
-```
-
-For other installation methods, see the [official documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local).
+- [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local)
+- Azure CLI (for deployment)
 
 ## Installation
 
-### Option 1: Install from PyPI (Recommended)
-
-The simplest way to install Legend CLI is via pip:
+### Option 1: Install from Github repository
 
 ```bash
-pip install legend-cli
+pip install git+https://github.com/maxvolumedev/legend_cli.git
 ```
 
 This will install the `legend` command globally.
 
 ### Option 2: Install from Source
 
-For development or testing, you can install the package directly from your local source:
-
 ```bash
-# Install in editable mode
-pip install -e /path/to/legend_cli
-
-# Install with development dependencies
-pip install -e /path/to/legend_cli[dev]
-```
-
-This will install the `legend` command globally, but use your local source code, allowing you to test changes immediately without rebuilding or republishing.
-
-## Running the CLI
-
-There are several ways to run the Legend CLI:
-
-1. **Using the installed command** (after pip install):
-   ```bash
-   legend new my-app
-   ```
-
-2. **Using Python module syntax**:
-   ```bash
-   python -m legend new my-app
-   ```
-
-3. **During development** (from the source directory):
-   ```bash
-   # Using the development script
-   ./bin/legend new my-app
-   
-   # Or using Python directly
-   PYTHONPATH=/path/to/legend_cli python -m legend new my-app
-   ```
-
-### Development Setup
-
-1. Clone this repository
-2. Create and activate a virtual environment (recommended):
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Unix/macOS
-   .venv\Scripts\activate     # On Windows
-   ```
-3. Install development dependencies:
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-
-### Quick Install (Development)
-
-To make the `legend` command available system-wide when developing, run:
-
-```bash
-./bin/install
-```
-
-This will create a symlink in `/usr/local/bin`. To install to a different location:
-
-```bash
-./bin/install /your/preferred/bin/path
-```
-
-### Manual Installation (Development)
-
-If you prefer not to use the install script, you can manually create a symlink:
-
-```bash
-ln -s /path/to/legend_cli/bin/legend /usr/local/bin/legend
+git clone https://github.com/maxvolumedev/legend_cli.git
+cd legend_cli
+pip install -e .
 ```
 
 ## Commands
 
-### Create a new Function App
+### legend bootstrap
+
+Checks and installs required dependencies.
 
 ```bash
-legend new <app_name>
+legend bootstrap
 ```
 
-This will:
-- Create a new Azure Function App
-- Initialize a Git repository
-- Set up test directory
+### legend new
 
-### Generate a new Function
+Creates a new Azure Function app with a standardized project structure.
 
 ```bash
-legend g[enerate] function <function_name>
+legend new APP_NAME [LOCATION]
 ```
 
-This will:
-- Create a new Azure Function
-- Generate function code from template
-- Create corresponding test file
+Options:
+- `APP_NAME`: Name of your function app (required)
+- `LOCATION`: Azure location to create resources in (default: australiasoutheast)
 
-### Function Templates
+Example:
+```bash
+legend new my-function-app
+```
 
-The following function templates are available:
+This creates:
+- A Python Azure Function app with virtual environment
+- Configuration files for multiple environments
+- Test directory structure
+- GitHub Actions workflow for CI/CD
+- Library directory for shared code
 
-* HTTP trigger
-* Queue trigger
-* Timer trigger
+### legend generate (alias: g)
 
-You can specify a template when generating a new function:
+Generates new code components.
 
 ```bash
-legend generate function my_function --template "Queue trigger"
+legend generate function FUNCTION_NAME [--template TEMPLATE]
 ```
 
-To see all available templates:
+Options:
+- `FUNCTION_NAME`: Name of the function to generate (required)
+- `--template`, `-t`: Function template to use (default: "HTTP trigger")
 
+Example:
+```bash
+legend generate function process_order --template "Queue trigger"
+```
+
+To see available templates:
 ```bash
 func templates list
 ```
 
-### Run the Function App locally
+### legend run (alias: r)
+
+Runs the Function App locally for development.
 
 ```bash
-legend r[un]
+legend run [--verbose]
 ```
 
-### Run tests
+Options:
+- `--verbose`, `-v`: Enable verbose output
+
+### legend test (alias: t)
+
+Runs the test suite using pytest.
 
 ```bash
-legend t[est]
+legend test [PYTEST_ARGS]
 ```
 
-### Start Python REPL
+All arguments after `test` are passed directly to pytest. The command automatically sets `LEGEND_ENVIRONMENT=test`.
+
+Examples:
+```bash
+legend test                    # Run all tests
+legend test -v                # Run with verbose output
+legend test test/specific     # Run tests in specific directory
+```
+
+### legend console (alias: c)
+
+Starts an interactive Python console with your function app loaded.
 
 ```bash
-legend c[onsole]
+legend console
 ```
 
-Loads all functions into an interactive Python console.
+The console provides:
+- Direct access to your functions
+- Helpers for creating mock requests
+- Access to the Azure Functions runtime
 
-## Command Abbreviations
+Example usage in console:
+```python
+# Create a mock HTTP request
+req = func.HttpRequest(
+    method='GET',
+    body=None,
+    url='/api/my_function',
+    params={'name': 'Test'}
+)
 
-Commands can be abbreviated to their first letter unless there is ambiguity:
-- `legend n` = `legend new`
-- `legend g` = `legend generate`
-- `legend r` = `legend run`
-- `legend t` = `legend test`
-- `legend c` = `legend console`
+# Call your function
+response = my_function(req)
+
+# Check the response
+print(response.get_body().decode())
+print(f"Status: {response.status_code}")
+```
+
+### legend provision (alias: p)
+
+Provisions required Azure resources for your function app.
+
+```bash
+legend provision [--environment ENV]
+```
+
+Options:
+- `--environment`, `-e`: Target environment (default: development)
+
+### legend deploy
+
+Deploys your function app to Azure.
+
+```bash
+legend deploy [--environment ENV]
+```
+
+Options:
+- `--environment`, `-e`: Target environment (default: development)
+
+## Configuration
+
+### Environment Configuration
+
+The application supports multiple environments: development, test, sit, uat, and production. Configuration for each environment is stored in TOML files under the `config/` directory.
+
+To specify the environment:
+```bash
+export LEGEND_ENVIRONMENT=development  # Or test, sit, uat, production
+```
+
+If not specified, the environment defaults to `development`.
+
+To access configuration in your code:
+```python
+from lib.config import config
+
+# Access configuration values
+key_vault_name = config.azure.key_vault_name
+api_base_url = config.api.base_url
+debug_mode = config.settings.debug
+```
+
+### Project Structure
+
+```
+my-function-app/
+├── .github/
+│   └── workflows/           # GitHub Actions workflows
+├── config/
+│   ├── application.toml    # Global configuration
+│   ├── development.toml    # Environment-specific configuration
+│   ├── test.toml
+│   ├── sit.toml
+│   ├── uat.toml
+│   └── production.toml
+├── lib/                    # Shared library code
+├── test/                   # Test files
+├── .gitignore
+├── function_app.py         # Azure Functions entry point
+├── host.json              # Azure Functions host configuration
+├── local.settings.json    # Local settings
+└── requirements.txt       # Python dependencies
+```
+
+## License
+
+MIT License. See LICENSE file for details.
