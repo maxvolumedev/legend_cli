@@ -2,8 +2,14 @@ import argparse
 import subprocess
 import sys
 import json
+import re
 from pathlib import Path
+import os
 from ..lib.config import load_config
+
+def clean_git_url(url: str) -> str:
+    """Remove any credentials from git URL"""
+    return re.sub(r'https://[^@]*@', 'https://', url)
 
 def run(args):
     """Deploy the current function app to Azure"""
@@ -52,29 +58,8 @@ def run(args):
         print(f"Details: {e}")
         return
 
-    # Get publishing credentials
-    print("Getting deployment credentials...")
-    try:
-        result = subprocess.run([
-            "az", "webapp", "deployment", "list-publishing-credentials",
-            "--resource-group", config['azure']['resource_group'],
-            "--name", config['azure']['app_name'],
-            "--query", "publishingUserName, publishingPassword",
-            "-o", "tsv"
-        ], capture_output=True, text=True, check=True)
-        username, password = result.stdout.strip().split()
-    except subprocess.CalledProcessError as e:
-        print("⛔️ Error: Failed to get publishing credentials")
-        print(f"Details: {e}")
-        return
-    except ValueError as e:
-        print("⛔️ Error: Failed to parse publishing credentials")
-        print(f"Details: {e}")
-        return
-
-    # Construct git URL with credentials
-    git_url_with_auth = git_url.replace("https://None@", f"https://{username}:{password}@")
-    remote_name = f"azure-{args.environment}"
+    remote_name = f"azure-{args.environment}"    
+    clean_url = clean_git_url(git_url)
 
     # Add/update git remote
     print(f"\nConfiguring git remote '{remote_name}'...")
@@ -82,29 +67,64 @@ def run(args):
         # Check if remote exists
         result = subprocess.run(["git", "remote", "get-url", remote_name], 
                               capture_output=True, text=True)
-        if result.returncode == 0:
-            # Update existing remote
-            subprocess.run(["git", "remote", "set-url", remote_name, git_url_with_auth],
-                         check=True)
-        else:
+        if result.returncode != 0:
             # Add new remote
-            subprocess.run(["git", "remote", "add", remote_name, git_url_with_auth],
+            subprocess.run(["git", "remote", "add", remote_name, clean_url],
                          check=True)
+        print(f"✅ Git remote '{remote_name}' configured")
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to configure git remote")
         print(f"Details: {e}")
         return
 
-    # Push to Azure
-    print(f"\nPushing to {args.environment}...")
+    # Get publishing credentials before push
+    print("\nGetting deployment credentials...")
     try:
-        subprocess.run(["git", "push", remote_name, "main:master"], check=True)
-        print(f"\n✨ Successfully deployed to {args.environment}!")
+        result = subprocess.run([
+            "az", "webapp", "deployment", "list-publishing-credentials",
+            "--resource-group", config['azure']['resource_group'],
+            "--name", config['azure']['app_name'],
+            "--query", "[publishingUserName, publishingPassword]",
+            "-o", "tsv"
+        ], capture_output=True, text=True, check=True)
+        username, password = result.stdout.strip().split()
+        print("✅ Got publishing credentials")
+
+        # Push to Azure using credentials in environment
+        print(f"\nPushing to {args.environment}...")
+        try:
+            # Set up environment with credentials
+            env = os.environ.copy()
+            askpass_script = str(Path(__file__).parent.parent / "scripts" / "git_askpass.sh")
+            
+            # Make script executable
+            os.chmod(askpass_script, 0o755)
+            
+            # Configure git credential helper
+            env['GIT_ASKPASS'] = askpass_script
+            env['GIT_USERNAME'] = username
+            env['GIT_PASSWORD'] = password
+            
+            # Push using remote name
+            result = subprocess.run(
+                ["git", "push", remote_name, "main:master"],
+                env=env,
+                check=True
+            )
+            print(f"\n✨ Successfully deployed to {args.environment}!")
+        except subprocess.CalledProcessError as e:
+            print("⛔️ Error: Failed to push to Azure")
+            print(f"Details: {e}")
+            print("\nTroubleshooting:")
+            print("1. Ensure you have committed all your changes")
+            print("2. If this is your first deployment, you may need to push with -f:")
+            print(f"   git push -f {remote_name} main:master")
+            return
     except subprocess.CalledProcessError as e:
-        print("⛔️ Error: Failed to push to Azure")
+        print("⛔️ Error: Failed to get publishing credentials")
         print(f"Details: {e}")
-        print("\nTroubleshooting:")
-        print("1. Ensure you have committed all your changes")
-        print("2. If this is your first deployment, you may need to push with -f:")
-        print(f"   git push -f {remote_name} main:master")
+        return
+    except ValueError as e:
+        print("⛔️ Error: Failed to parse publishing credentials")
+        print(f"Details: {e}")
         return

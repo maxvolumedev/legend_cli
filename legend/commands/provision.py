@@ -1,69 +1,21 @@
+import argparse
 import subprocess
 import sys
 import time
-import argparse
-import os
-import tomli
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-
-def load_config(environment: str) -> Dict[str, Any]:
-    """
-    Load and merge configuration for the given environment
-    TODO: Refactor this into the Config class once we're happy with the implementation
-    """
-    config_dir = Path("config")
-    
-    # Check if we're in a Legend app directory
-    if not config_dir.exists():
-        print("⛔️ Error: Not in a Legend application directory (config/ not found)")
-        sys.exit(1)
-    
-    try:
-        # Load global configuration
-        with open(config_dir / "application.toml", "rb") as f:
-            global_config = tomli.load(f)
-        
-        # Load environment configuration
-        with open(config_dir / f"{environment}.toml", "rb") as f:
-            env_config = tomli.load(f)
-        
-        # Merge configurations (environment config takes precedence)
-        return deep_merge(global_config, env_config)
-    except FileNotFoundError as e:
-        print(f"⛔️ Error: Configuration file not found: {e.filename}")
-        sys.exit(1)
-    except tomli.TOMLDecodeError as e:
-        print(f"⛔️ Error: Invalid TOML syntax in configuration: {e}")
-        sys.exit(1)
-
-def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    """Recursively merge two dictionaries, with override taking precedence"""
-    merged = base.copy()
-    
-    for key, value in override.items():
-        if (
-            key in merged 
-            and isinstance(merged[key], dict) 
-            and isinstance(value, dict)
-        ):
-            merged[key] = deep_merge(merged[key], value)
-        else:
-            merged[key] = value
-            
-    return merged
+from typing import Dict, Any, List
+from ..lib.config import load_config
 
 def validate_config(config: Dict[str, Any]) -> bool:
-    """Validate that all required configuration values are present"""
+    """Validate the configuration has all required values"""
+    if not config:
+        return False
+
     missing = []
-    
-    # Check settings
-    if not config.get("settings", {}).get("app_name"):
-        missing.append("settings.app_name")
     
     # Check azure settings
     azure = config.get("azure", {})
-    for key in ["location", "resource_group", "storage_account", "app_service_plan", 
+    for key in ["location", "resource_group", "storage_account", "app_name", "app_service_plan", 
                 "key_vault_name", "log_analytics_workspace"]:
         if not azure.get(key):
             missing.append(f"azure.{key}")
