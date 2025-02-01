@@ -89,14 +89,33 @@ def provision_environment(environment: str):
     for key, value in config['azure'].items():
         print(f"  {key}: {value}")
 
-    # Create resource group
-    print("\nCreating resource group...")
+    # Check if resource group exists
+    print("\nChecking if resource group exists...")
     try:
-        subprocess.run([
-            "az", "group", "create",
+        result = subprocess.run([
+            "az", "group", "show",
             "--name", config['azure']['resource_group'],
-            "--location", config['azure']['location']
-        ], check=True)
+            "--query", "location",
+            "-o", "tsv"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print("Creating resource group...")
+            subprocess.run([
+                "az", "group", "create",
+                "--name", config['azure']['resource_group'],
+                "--location", config['azure']['location']
+            ], check=True)
+        else:
+            existing_location = result.stdout.strip().lower()
+            desired_location = config['azure']['location'].lower()
+            if existing_location != desired_location:
+                print(f"Error: Resource group '{config['azure']['resource_group']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
+                print("Please either:")
+                print(f"1. Update the location in your config to '{existing_location}'")
+                print(f"2. Delete the existing resource group and run provision again to create it in '{desired_location}'")
+                return
+            print(f"Resource group '{config['azure']['resource_group']}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
         print("Error: Failed to create resource group")
         print(f"Details: {e}")
@@ -109,7 +128,7 @@ def provision_environment(environment: str):
         result = subprocess.run([
             "az", "storage", "account", "show",
             "--name", storage_account_name,
-            "--query", "name",
+            "--query", "location",
             "-o", "tsv"
         ], capture_output=True, text=True)
         
@@ -123,7 +142,15 @@ def provision_environment(environment: str):
                 "--sku", "Standard_LRS"
             ], check=True)
         else:
-            print(f"Storage account '{storage_account_name}' already exists")
+            existing_location = result.stdout.strip().lower()
+            desired_location = config['azure']['location'].lower()
+            if existing_location != desired_location:
+                print(f"Error: Storage account '{storage_account_name}' exists in location '{existing_location}', but we need it in '{desired_location}'")
+                print("Please either:")
+                print(f"1. Update the location in your config to '{existing_location}'")
+                print(f"2. Delete the existing storage account and run provision again to create it in '{desired_location}'")
+                return
+            print(f"Storage account '{storage_account_name}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
         print("Error: Failed to create storage account")
         print(f"Details: {e}")
@@ -136,7 +163,7 @@ def provision_environment(environment: str):
             "az", "appservice", "plan", "show",
             "--name", config['azure']['app_service_plan'],
             "--resource-group", config['azure']['resource_group'],
-            "--query", "name",
+            "--query", "location",
             "-o", "tsv"
         ], capture_output=True, text=True)
         
@@ -151,7 +178,15 @@ def provision_environment(environment: str):
                 "--is-linux"
             ], check=True)
         else:
-            print(f"App Service Plan '{config['azure']['app_service_plan']}' already exists")
+            existing_location = result.stdout.strip().lower()
+            desired_location = config['azure']['location'].lower()
+            if existing_location != desired_location:
+                print(f"Error: App Service Plan '{config['azure']['app_service_plan']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
+                print("Please either:")
+                print(f"1. Update the location in your config to '{existing_location}'")
+                print(f"2. Delete the existing App Service Plan and run provision again to create it in '{desired_location}'")
+                return
+            print(f"App Service Plan '{config['azure']['app_service_plan']}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
         print("Error: Failed to create App Service Plan")
         print(f"Details: {e}")
