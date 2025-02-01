@@ -86,8 +86,6 @@ def provision_environment(environment: str):
 
     print(f"\nProvisioning environment: {environment}")
     print("\nConfiguration:")
-    print(f"  App Name: {config['settings']['app_name']}")
-    print("\nAzure Settings:")
     for key, value in config['azure'].items():
         print(f"  {key}: {value}")
 
@@ -105,7 +103,7 @@ def provision_environment(environment: str):
         return
 
     # Check if storage account exists
-    storage_account_name = ''.join(c.lower() for c in config['settings']['app_name'] + "storage" if c.isalpha())[:24]
+    storage_account_name = config['azure']['storage_account'][:24]
     print(f"\nChecking if storage account exists ({storage_account_name})...")
     try:
         result = subprocess.run([
