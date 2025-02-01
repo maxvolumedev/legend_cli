@@ -99,44 +99,228 @@ def provision_environment(environment: str):
             "--name", config['azure']['resource_group'],
             "--location", config['azure']['location']
         ], check=True)
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         print("Error: Failed to create resource group")
+        print(f"Details: {e}")
         return
 
-    # Create storage account (ensure name is lowercase and only contains letters)
+    # Check if storage account exists
     storage_account_name = ''.join(c.lower() for c in config['settings']['app_name'] + "storage" if c.isalpha())[:24]
-    print(f"\nCreating storage account ({storage_account_name})...")
+    print(f"\nChecking if storage account exists ({storage_account_name})...")
     try:
-        subprocess.run([
-            "az", "storage", "account", "create",
+        result = subprocess.run([
+            "az", "storage", "account", "show",
             "--name", storage_account_name,
-            "--location", config['azure']['location'],
-            "--resource-group", config['azure']['resource_group'],
-            "--sku", "Standard_LRS"
-        ], check=True)
-    except subprocess.CalledProcessError:
+            "--query", "name",
+            "-o", "tsv"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print("Creating storage account...")
+            subprocess.run([
+                "az", "storage", "account", "create",
+                "--name", storage_account_name,
+                "--location", config['azure']['location'],
+                "--resource-group", config['azure']['resource_group'],
+                "--sku", "Standard_LRS"
+            ], check=True)
+        else:
+            print(f"Storage account '{storage_account_name}' already exists")
+    except subprocess.CalledProcessError as e:
         print("Error: Failed to create storage account")
+        print(f"Details: {e}")
         return
 
-    # Create App Service Plan
-    print("\nCreating App Service Plan...")
+    # Check if App Service Plan exists
+    print("\nChecking if App Service Plan exists...")
     try:
-        subprocess.run([
-            "az", "appservice", "plan", "create",
+        result = subprocess.run([
+            "az", "appservice", "plan", "show",
             "--name", config['azure']['app_service_plan'],
             "--resource-group", config['azure']['resource_group'],
-            "--location", config['azure']['location'],
-            "--sku", "F1",
-            "--is-linux"
-        ], check=True)
-    except subprocess.CalledProcessError:
+            "--query", "name",
+            "-o", "tsv"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print("Creating App Service Plan...")
+            subprocess.run([
+                "az", "appservice", "plan", "create",
+                "--name", config['azure']['app_service_plan'],
+                "--resource-group", config['azure']['resource_group'],
+                "--location", config['azure']['location'],
+                "--sku", "B1",
+                "--is-linux"
+            ], check=True)
+        else:
+            print(f"App Service Plan '{config['azure']['app_service_plan']}' already exists")
+    except subprocess.CalledProcessError as e:
         print("Error: Failed to create App Service Plan")
+        print(f"Details: {e}")
+        return
+
+    # Check if Function App exists
+    print("\nChecking if Function App exists...")
+    try:
+        result = subprocess.run([
+            "az", "functionapp", "show",
+            "--name", config['azure']['app_name'],
+            "--resource-group", config['azure']['resource_group'],
+            "--query", "name",
+            "-o", "tsv"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            # Create Function App
+            print("Creating Function App...")
+            subprocess.run([
+                "az", "functionapp", "create",
+                "--name", config['azure']['app_name'],
+                "--storage-account", storage_account_name,
+                "--plan", config['azure']['app_service_plan'],
+                "--resource-group", config['azure']['resource_group'],
+                "--runtime", "python"
+            ], check=True)
+        else:
+            print(f"Function App '{config['azure']['app_name']}' already exists")
+    except subprocess.CalledProcessError as e:
+        print("Error: Failed to create Function App")
+        print(f"Details: {e}")
+        return
+
+    # Create Key Vault if it doesn't exist
+    print("\nChecking if Key Vault exists...")
+    try:
+        # Check if Key Vault exists
+        result = subprocess.run([
+            "az", "keyvault", "show",
+            "--name", config['azure']['key_vault_name'],
+            "--query", "name",
+            "-o", "tsv"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print("Creating Key Vault...")
+            subprocess.run([
+                "az", "keyvault", "create",
+                "--name", config['azure']['key_vault_name'],
+                "--resource-group", config['azure']['resource_group'],
+                "--location", config['azure']['location'],
+                "--enable-rbac-authorization", "false"  # Use access policies instead of RBAC
+            ], check=True)
+        else:
+            # Check if the vault uses RBAC
+            result = subprocess.run([
+                "az", "keyvault", "show",
+                "--name", config['azure']['key_vault_name'],
+                "--query", "properties.enableRbacAuthorization",
+                "-o", "tsv"
+            ], capture_output=True, text=True, check=True)
+            if result.stdout.strip().lower() == 'true':
+                print("Error: Key Vault is configured with RBAC authorization. Please use a vault with access policies.")
+                return
+    except subprocess.CalledProcessError as e:
+        print("Error: Failed to create/check Key Vault")
+        print(f"Details: {e}")
+        return
+
+    # Get Function App's managed identity
+    print("\nConfiguring Key Vault access...")
+    try:
+        # First, enable managed identity for the function app
+        result = subprocess.run([
+            "az", "functionapp", "identity", "assign",
+            "--name", config['azure']['app_name'],
+            "--resource-group", config['azure']['resource_group'],
+            "--query", "principalId",
+            "-o", "tsv"
+        ], check=True, capture_output=True, text=True)
+        principal_id = result.stdout.strip()
+        
+        if not principal_id:
+            print("Error: Failed to get function app's managed identity")
+            return
+        
+        # Set Key Vault policy
+        subprocess.run([
+            "az", "keyvault", "set-policy",
+            "--name", config['azure']['key_vault_name'],
+            "--secret-permissions", "get", "list",
+            "--object-id", principal_id
+        ], check=True)
+    except subprocess.CalledProcessError as e:
+        print("Error: Failed to configure Key Vault access")
+        print(f"Details: {e}")
+        return
+
+    # Create Log Analytics Workspace if it doesn't exist
+    print("\nEnsuring Log Analytics Workspace exists...")
+    try:
+        # Try to get workspace ID
+        result = subprocess.run([
+            "az", "monitor", "log-analytics", "workspace", "show",
+            "--resource-group", config['azure']['resource_group'],
+            "--workspace-name", config['azure']['log_analytics_workspace'],
+            "--query", "id",
+            "-o", "tsv"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            # Workspace doesn't exist, create it
+            print("Creating Log Analytics Workspace...")
+            subprocess.run([
+                "az", "monitor", "log-analytics", "workspace", "create",
+                "--resource-group", config['azure']['resource_group'],
+                "--workspace-name", config['azure']['log_analytics_workspace']
+            ], check=True)
+    except subprocess.CalledProcessError:
+        print("Error: Failed to create Log Analytics Workspace")
+        return
+
+    # Create Application Insights
+    print("\nCreating Application Insights...")
+    try:
+        subprocess.run([
+            "az", "monitor", "app-insights", "component", "create",
+            "--app", config['azure']['app_name'],
+            "--location", config['azure']['location'],
+            "--resource-group", config['azure']['resource_group'],
+            "--kind", "web"
+        ], check=True)
+
+        # Get instrumentation key and update function app
+        print("Configuring Application Insights for Function App...")
+        result = subprocess.run([
+            "az", "monitor", "app-insights", "component", "show",
+            "--app", config['azure']['app_name'],
+            "--resource-group", config['azure']['resource_group'],
+            "--query", "instrumentationKey",
+            "-o", "tsv"
+        ], check=True, capture_output=True, text=True)
+        instrumentation_key = result.stdout.strip()
+
+        # Update function app settings to include Application Insights
+        subprocess.run([
+            "az", "functionapp", "config", "appsettings", "set",
+            "--name", config['azure']['app_name'],
+            "--resource-group", config['azure']['resource_group'],
+            "--settings",
+            f"APPINSIGHTS_INSTRUMENTATIONKEY={instrumentation_key}",
+            f"APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey={instrumentation_key}"
+        ], check=True)
+    except subprocess.CalledProcessError as e:
+        print("Error: Failed to configure Application Insights")
+        print(f"Details: {e}")
         return
 
     print("\n✨ Azure resources have been provisioned successfully!")
     print(f"\nResource Group: {config['azure']['resource_group']}")
     print(f"Storage Account: {storage_account_name}")
     print(f"App Service Plan: {config['azure']['app_service_plan']}")
+    print(f"Function App: {config['azure']['app_name']}")
+    print(f"Key Vault: {config['azure']['key_vault_name']}")
+    print(f"Log Analytics Workspace: {config['azure']['log_analytics_workspace']}")
+    print("\nApplication is ready to be deployed!")
 
 def check_az_cli() -> bool:
     """Check if Azure CLI is installed"""
