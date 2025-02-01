@@ -15,7 +15,7 @@ def validate_config(config: Dict[str, Any]) -> bool:
     
     # Check azure settings
     azure = config.get("azure", {})
-    for key in ["location", "resource_group", "storage_account", "app_name", "app_service_plan", 
+    for key in ["location", "resource_group", "storage_account", "function_app", "app_service_plan", 
                 "key_vault_name", "log_analytics_workspace"]:
         if not azure.get(key):
             missing.append(f"azure.{key}")
@@ -59,7 +59,7 @@ def provision_environment(environment: str):
                 "--location", config['azure']['location']
             ], check=True)
         else:
-            existing_location = result.stdout.strip().lower()
+            existing_location = result.stdout.strip().lower().replace(" ", "")
             desired_location = config['azure']['location'].lower()
             if existing_location != desired_location:
                 print(f"⛔️ Error: Resource group '{config['azure']['resource_group']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
@@ -94,7 +94,7 @@ def provision_environment(environment: str):
                 "--sku", "Standard_LRS"
             ], check=True)
         else:
-            existing_location = result.stdout.strip().lower()
+            existing_location = result.stdout.strip().lower().replace(" ", "")
             desired_location = config['azure']['location'].lower()
             if existing_location != desired_location:
                 print(f"⛔️ Error: Storage account '{storage_account_name}' exists in location '{existing_location}', but we need it in '{desired_location}'")
@@ -130,7 +130,7 @@ def provision_environment(environment: str):
                 "--is-linux"
             ], check=True)
         else:
-            existing_location = result.stdout.strip().lower()
+            existing_location = result.stdout.strip().lower().replace(" ", "")
             desired_location = config['azure']['location'].lower()
             if existing_location != desired_location:
                 print(f"⛔️ Error: App Service Plan '{config['azure']['app_service_plan']}' exists in location '{existing_location}', but we need it in '{desired_location}'")
@@ -149,8 +149,8 @@ def provision_environment(environment: str):
     try:
         result = subprocess.run([
             "az", "functionapp", "show",
-            "--name", config['azure']['app_name'],
             "--resource-group", config['azure']['resource_group'],
+            "--name", config['azure']['function_app'],
             "--query", "name",
             "-o", "tsv"
         ], capture_output=True, text=True)
@@ -160,14 +160,17 @@ def provision_environment(environment: str):
             print("Creating Function App...")
             subprocess.run([
                 "az", "functionapp", "create",
-                "--name", config['azure']['app_name'],
-                "--storage-account", storage_account_name,
-                "--plan", config['azure']['app_service_plan'],
                 "--resource-group", config['azure']['resource_group'],
-                "--runtime", "python"
+                "--name", config['azure']['function_app'],
+                "--storage-account", config['azure']['storage_account'],
+                "--plan", config['azure']['app_service_plan'],
+                "--runtime", "python",
+                "--runtime-version", "3.11",
+                "--functions-version", "4",
+                "--os-type", "linux"
             ], check=True)
         else:
-            print(f"Function App '{config['azure']['app_name']}' already exists")
+            print(f"Function App '{config['azure']['function_app']}' already exists")
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to create Function App")
         print(f"Details: {e}")
@@ -210,29 +213,41 @@ def provision_environment(environment: str):
         return
 
     # Get Function App's managed identity
-    print("\nConfiguring Key Vault access...")
+    print("\nConfiguring Function App's managed identity...")
     try:
-        # First, enable managed identity for the function app
-        result = subprocess.run([
+        # First assign managed identity
+        subprocess.run([
             "az", "functionapp", "identity", "assign",
-            "--name", config['azure']['app_name'],
             "--resource-group", config['azure']['resource_group'],
+            "--name", config['azure']['function_app']
+        ], check=True)
+
+        # Then get the principal ID
+        result = subprocess.run([
+            "az", "functionapp", "identity", "show",
+            "--resource-group", config['azure']['resource_group'],
+            "--name", config['azure']['function_app'],
             "--query", "principalId",
             "-o", "tsv"
-        ], check=True, capture_output=True, text=True)
+        ], capture_output=True, text=True, check=True)
         principal_id = result.stdout.strip()
         
         if not principal_id:
             print("⛔️ Error: Failed to get function app's managed identity")
             return
         
+        print("✅ Managed identity configured")
+
         # Set Key Vault policy
+        print("\nConfiguring Key Vault access...")
         subprocess.run([
             "az", "keyvault", "set-policy",
             "--name", config['azure']['key_vault_name'],
             "--secret-permissions", "get", "list",
             "--object-id", principal_id
         ], check=True)
+        
+        print("✅ Key Vault access configured")
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to configure Key Vault access")
         print(f"Details: {e}")
@@ -267,9 +282,9 @@ def provision_environment(environment: str):
     try:
         subprocess.run([
             "az", "monitor", "app-insights", "component", "create",
-            "--app", config['azure']['app_name'],
-            "--location", config['azure']['location'],
             "--resource-group", config['azure']['resource_group'],
+            "--app", config['azure']['function_app'],
+            "--location", config['azure']['location'],
             "--kind", "web"
         ], check=True)
 
@@ -277,20 +292,19 @@ def provision_environment(environment: str):
         print("Configuring Application Insights for Function App...")
         result = subprocess.run([
             "az", "monitor", "app-insights", "component", "show",
-            "--app", config['azure']['app_name'],
             "--resource-group", config['azure']['resource_group'],
+            "--app", config['azure']['function_app'],
             "--query", "instrumentationKey",
             "-o", "tsv"
         ], check=True, capture_output=True, text=True)
         instrumentation_key = result.stdout.strip()
 
-        # Update function app settings to include Application Insights
+        # Configure Function App settings
         subprocess.run([
             "az", "functionapp", "config", "appsettings", "set",
-            "--name", config['azure']['app_name'],
             "--resource-group", config['azure']['resource_group'],
+            "--name", config['azure']['function_app'],
             "--settings",
-            f"APPINSIGHTS_INSTRUMENTATIONKEY={instrumentation_key}",
             f"APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey={instrumentation_key}"
         ], check=True)
     except subprocess.CalledProcessError as e:
@@ -302,7 +316,7 @@ def provision_environment(environment: str):
     print(f"\nResource Group: {config['azure']['resource_group']}")
     print(f"Storage Account: {storage_account_name}")
     print(f"App Service Plan: {config['azure']['app_service_plan']}")
-    print(f"Function App: {config['azure']['app_name']}")
+    print(f"Function App: {config['azure']['function_app']}")
     print(f"Key Vault: {config['azure']['key_vault_name']}")
     print(f"Log Analytics Workspace: {config['azure']['log_analytics_workspace']}")
     print("\nApplication is ready to be deployed!")

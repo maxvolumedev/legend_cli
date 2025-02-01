@@ -2,6 +2,7 @@ import os
 import subprocess
 import venv
 import argparse
+import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -10,7 +11,7 @@ TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 # Additional dependencies to add to requirements.txt
 ADDITIONAL_DEPS = [
     "jinja2>=3.1.2",
-    "https://github.com/maxvolumedev/legend_cli.git",
+    "git+https://github.com/maxvolumedev/legend_cli.git",
     "tomli>=2.0.1  # For reading TOML configuration files",
 ]
 
@@ -232,8 +233,12 @@ python -m legend "$@"
     # Render GitHub workflow
     render_template("workflows/deploy.yml", ".github/workflows/deploy.yml")
 
-    print(f"✨ New function app '{args.name}' created successfully!")
-    print("\nTo get started:")
+    print("\n✨ Created new Legend app!")
+    print(f"\nNext steps:")
     print(f"  cd {args.name}")
-    print("  source .venv/bin/activate    # Activate virtual environment")
-    print("  func start                   # Start the function app")
+    print(f"  legend generate function             # Generate a new function")
+    print(f"  legend test                          # Run tests")
+    print(f"  legend run                           # Run function app locally")
+    print(f"  legend console                       # Start interactive console")
+    print(f"  legend provision                     # Provision Azure resources")
+    print(f"  legend deploy                        # Deploy to Azure")

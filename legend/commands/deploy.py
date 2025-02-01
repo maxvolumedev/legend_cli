@@ -1,6 +1,6 @@
-import argparse
+import os
 import subprocess
-import sys
+import argparse
 import json
 import re
 from pathlib import Path
@@ -25,7 +25,6 @@ def run(args):
 
     print(f"\nDeploying to environment: {args.environment}")
     print(f"Resource Group: {config['azure']['resource_group']}")
-    print(f"Function App: {config['azure']['app_name']}")
 
     # Check if git deployment is already configured
     print("\nChecking git deployment configuration...")
@@ -83,8 +82,8 @@ def run(args):
         result = subprocess.run([
             "az", "webapp", "deployment", "list-publishing-credentials",
             "--resource-group", config['azure']['resource_group'],
-            "--name", config['azure']['app_name'],
             "--query", "[publishingUserName, publishingPassword]",
+            "--name", config['azure']['function_app'],
             "-o", "tsv"
         ], capture_output=True, text=True, check=True)
         username, password = result.stdout.strip().split()
