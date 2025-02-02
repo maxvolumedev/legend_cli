@@ -1,9 +1,10 @@
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
+from types import SimpleNamespace
 import tomli
 
-def load_config(environment: str) -> Optional[Dict[str, Any]]:
+def load_config(environment: str) -> Optional[SimpleNamespace]:
     """Load and merge configuration for the specified environment"""
     config_dir = Path("config")
     
@@ -26,13 +27,21 @@ def load_config(environment: str) -> Optional[Dict[str, Any]]:
             env_config = tomli.load(f)
         
         # Merge configurations (environment config takes precedence)
-        return deep_merge(global_config, env_config)
+        merged = deep_merge(global_config, env_config)
+        return dict_to_namespace(merged)
     except FileNotFoundError as e:
         print(f"⛔️ Error: Configuration file not found: {e.filename}")
         return None
     except tomli.TOMLDecodeError as e:
         print(f"⛔️ Error: Invalid TOML syntax in configuration: {e}")
         return None
+
+def dict_to_namespace(d: Dict[str, Any]) -> SimpleNamespace:
+    """Convert a dictionary to a SimpleNamespace recursively for dot notation access."""
+    if not isinstance(d, dict):
+        return d
+    return SimpleNamespace(**{k: dict_to_namespace(v) if isinstance(v, dict) else v 
+                            for k, v in d.items()})
 
 def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     """Deep merge two dictionaries, with override taking precedence"""
