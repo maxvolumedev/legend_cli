@@ -24,6 +24,14 @@ class DestroyCommand(Command):
         if not config:
             return
 
+        # Check if app exists
+        if not self.check_resource_exists('functionapp', config.azure.function_app, config.azure.resource_group):
+            self.error(f"Function app '{config.azure.function_app}' not found")
+            print("\nTo deploy your app:")
+            print("1. Run 'legend provision' to create Azure resources")
+            print("2. Run 'legend deploy' to deploy your code")
+            return
+
         self.warning(f"This will delete ALL resources in environment: {args.environment}")
         print(f"Resource Group: {config.azure.resource_group}")
         print(f"Function App: {config.azure.function_app}")

@@ -65,7 +65,6 @@ class Command(ABC):
             args: The parsed command arguments
             verbose: Whether to enable verbose output
         """
-        self.info("Verbose: " + str(args.verbose))
         self.verbose = args.verbose
         return self.handle(args)
     

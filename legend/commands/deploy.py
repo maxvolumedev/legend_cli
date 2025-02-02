@@ -1,73 +1,87 @@
-import os
-import subprocess
-import argparse
-import json
 import re
 from pathlib import Path
-import os
 from ..lib.config import load_config
+from .base import Command
+
 
 def clean_git_url(url: str) -> str:
     """Remove any credentials from git URL"""
     return re.sub(r'https://[^@]*@', 'https://', url)
 
-def run(args):
-    """Deploy the current function app to Azure"""
-    parser = argparse.ArgumentParser(description='Deploy function app to Azure')
-    parser.add_argument('environment', help='Environment to deploy to (e.g., development, test, sit)')
-    parser.add_argument('--verbose', '-v', action='store_true', help='Show additional deployment information')
-    args = parser.parse_args(args)
 
-    # Load configuration
-    config = load_config(args.environment)
-    if not config:
-        print(f"⛔️ Error: Could not load configuration for environment '{args.environment}'")
-        return
+class DeployCommand(Command):
+    """Deploy function app to Azure"""
 
-    print(f"\nDeploying to environment: {args.environment}")
-    print(f"Resource Group: {config['azure']['resource_group']}")
-    print(f"Function App: {config['azure']['function_app']}")
+    def __init__(self):
+        super().__init__(
+            name='deploy',
+            description='Deploy function app to Azure'
+        )
 
-    # Get Git deployment URL with embedded credentials
-    print("\nGetting deployment URL...")
-    try:
-        result = subprocess.run([
+    def add_arguments(self, parser):
+        parser.add_argument('environment',
+                          help='Environment to deploy to (e.g., development, test, sit)')
+
+    def handle(self, args):
+        if not self.validate_environment(args.environment):
+            return
+
+        # Load configuration
+        config = load_config(args.environment)
+        if not config:
+            return
+
+        # Check if app exists
+        if not self.check_resource_exists('functionapp', config.azure.function_app, config.azure.resource_group):
+            self.error(f"Function app '{config.azure.function_app}' not found")
+            print("\nTo deploy your app:")
+            print("1. Run 'legend provision' to create Azure resources")
+            print("2. Run 'legend deploy' to deploy your code")
+            return
+
+        self.info(f"\nDeploying to environment: {args.environment}")
+        self.info(f"Resource Group: {config.azure.resource_group}")
+        self.info(f"Function App: {config.azure.function_app}")
+
+        # Get Git deployment URL with embedded credentials
+        self.info("\nGetting deployment URL...")
+        result = self.run_subprocess([
             "az", "webapp", "deployment", "list-publishing-credentials",
-            "--resource-group", config['azure']['resource_group'],
-            "--name", config['azure']['function_app'],
+            "--resource-group", config.azure.resource_group,
+            "--name", config.azure.function_app,
             "--query", "scmUri",
             "-o", "tsv"
-        ], capture_output=True, text=True, check=True)
+        ])
         
+        if not result:
+            self.error("Failed to get deployment URL")
+            return
+            
         git_url = result.stdout.strip()
         if not git_url:
-            print("⛔️ Error: Failed to get deployment URL")
+            self.error("Failed to get deployment URL - empty response")
             return
             
         # Append <app_name>.git to the URL
-        git_url = f"{git_url}/{config['azure']['function_app']}.git"
-        print("✅ Got deployment URL")
-        if args.verbose:
+        git_url = f"{git_url}/{config.azure.function_app}.git"
+        self.success("Got deployment URL")
+        if self.verbose:
             # Show full URL in verbose mode
-            print(f"Deployment URL: {git_url}")
-    except subprocess.CalledProcessError as e:
-        print("⛔️ Error: Failed to get deployment URL")
-        print(f"Details: {e}")
-        return
+            self.info(f"Deployment URL: {git_url}")
 
-    # Push to Azure
-    print(f"\nPushing to {args.environment}...")
-    try:
-        result = subprocess.run(
-            ["git", "push", git_url, "main:master"],
-            check=True
-        )
-        print(f"\n✨ Successfully deployed to {args.environment}!")
-    except subprocess.CalledProcessError as e:
-        print("⛔️ Error: Failed to push to Azure")
-        print(f"Details: {e}")
-        print("\nTroubleshooting:")
-        print("1. Ensure you have committed all your changes")
-        print("2. If this is your first deployment, you may need to push with -f:")
-        print(f"   git push -f {git_url} main:master")
-        return
+        # Push to Azure
+        self.info(f"\nPushing branch {config.branch} to {args.environment}...")
+        result = self.run_subprocess(["git", "push", git_url, f"{config.branch}:master"])
+        
+        if not result:
+            self.error("Failed to push to Azure")
+            self.info("\nTroubleshooting:")
+            self.info("1. Ensure you have committed all your changes")
+            self.info("2. If this is your first deployment, you may need to push with -f:")
+            self.info(f"   git push -f {git_url} main:master")
+            return
+
+        self.completed(f"Successfully deployed to {args.environment}!")
+
+
+command = DeployCommand()

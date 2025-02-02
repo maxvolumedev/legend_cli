@@ -28,7 +28,7 @@ def main():
         # test.command,
         # console.command,
         # provision.command,
-        # deploy.command,
+        deploy.command,
         bootstrap.command,
         info.command,
         destroy.command

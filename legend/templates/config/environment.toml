@@ -23,6 +23,9 @@ plan_sku = "B1"  # Basic tier for non-production
 # Key Vault name (must be globally unique)
 key_vault_name = "{{ key_vault_name }}"
 
+# Git branch to deploy to this environment
+branch = "{{ environment }}"
+
 
 [api]
 # External API endpoints for {{ environment }} environment
