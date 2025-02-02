@@ -1,7 +1,19 @@
-import code
 import os
 import importlib.util
 import azure.functions as func
+
+def start_repl(namespace):
+    """Start the best available REPL."""
+    print("\nChecking available REPLs...")
+    try:
+        import sys
+        from ptpython.repl import embed
+        print("✓ ptpython found, using enhanced REPL")
+        embed(globals=namespace, locals=namespace)
+    except ImportError as e:
+        print(f"✗ ptpython not found ({str(e)}), falling back to standard REPL")
+        import code
+        code.interact(local=namespace)
 
 def import_function_app():
     """Import the function_app module."""
@@ -75,4 +87,4 @@ def run(args):
     })
     
     print_help(app)
-    code.interact(local=namespace)
+    start_repl(namespace)

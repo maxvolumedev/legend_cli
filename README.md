@@ -122,6 +122,7 @@ The console provides:
 - Direct access to your functions
 - Helpers for creating mock requests
 - Access to the Azure Functions runtime
+- Enhanced REPL experience with syntax highlighting and auto-completion if ptpython is installed (`pip install ptpython`)
 
 Example usage in console:
 ```python
