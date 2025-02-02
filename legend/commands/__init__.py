@@ -10,3 +10,4 @@ from . import console
 from . import provision
 from . import deploy
 from . import bootstrap
+from . import info
