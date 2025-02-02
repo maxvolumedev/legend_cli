@@ -1,0 +1,8 @@
+# Local environment configuration
+
+[app]
+name = "{{ app_name }}-{{ environment }}"  # Local app name
+
+[storage]
+# Use Azurite for local development
+connection_string = "UseDevelopmentStorage=true"

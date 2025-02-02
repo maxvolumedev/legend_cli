@@ -3,6 +3,7 @@ import subprocess
 import venv
 import argparse
 import re
+import uuid
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -210,6 +211,8 @@ def get_keyvault_name(app_name: str, env: str) -> str:
     # Pad with UUID to ensure uniqueness
     return pad_with_uuid(name, 24)
 
+
+
 def run(args):
     parser = argparse.ArgumentParser(description='Create a new Azure Function App')
     parser.add_argument('name', help='Name of the function app')
@@ -282,8 +285,10 @@ def run(args):
     # Create environment configuration files
     environments = ["development", "test", "sit", "uat", "production"]
     for environment in environments:
-        config_file = f"config/{environment}.toml"
-        template = jinja_env.get_template("config/environment.toml")
+        config_file = f"config/environment-{environment}.toml"
+        # Use local template for dev/test, azure template for others
+        template_name = "config/environment-local.toml" if environment in ["development", "test"] else "config/environment.toml"
+        template = jinja_env.get_template(template_name)
         with open(config_file, "w") as f:
             f.write(template.render(
                 app_name=normalize_name(args.name),
