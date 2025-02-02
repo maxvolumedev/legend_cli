@@ -16,7 +16,7 @@ def validate_config(config: Dict[str, Any]) -> bool:
     # Check azure settings
     azure = config.get("azure", {})
     for key in ["location", "resource_group", "storage_account", "function_app", "app_service_plan", 
-                "key_vault_name", "log_analytics_workspace"]:
+                "key_vault_name", "log_analytics_workspace", "plan_sku"]:
         if not azure.get(key):
             missing.append(f"azure.{key}")
     
@@ -126,7 +126,7 @@ def provision_environment(environment: str):
                 "--name", config['azure']['app_service_plan'],
                 "--resource-group", config['azure']['resource_group'],
                 "--location", config['azure']['location'],
-                "--sku", "B1",
+                "--sku", config['azure']['plan_sku'],
                 "--is-linux"
             ], check=True)
         else:
