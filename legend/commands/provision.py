@@ -354,8 +354,9 @@ def register_providers() -> List[str]:
         "Microsoft.Web",
         "Microsoft.KeyVault",
         "Microsoft.Insights",
-        "Microsoft.Storage"  # Added as it's commonly needed
-    ]
+        "Microsoft.Storage",
+        "Microsoft.AlertsManagement"
+,    ]
     
     print("Registering Azure resource providers...")
     for provider in providers:

@@ -152,6 +152,9 @@ legend provision [--environment ENV]
 
 Options:
 - `--environment`, `-e`: Target environment (default: development)
+- `--skip-registration`, `-s`: Skip Azure provider registration (faster if you already have the providers registered)
+
+**Note**: The first time you run `legend provision`, it may take several minutes as it needs to register Azure resource providers. Subsequent runs will be faster.
 
 ### legend deploy
 
@@ -163,6 +166,69 @@ legend deploy [--environment ENV]
 
 Options:
 - `--environment`, `-e`: Target environment (default: development)
+
+### legend info
+
+Shows information about the deployed function app, including URLs and access keys.
+
+```bash
+legend info [--environment ENV]
+```
+
+Options:
+- `--environment`, `-e`: Target environment (default: development)
+
+Example output:
+```
+Function App: myapp-development
+Resource Group: myapp-group-development
+
+Host Keys:
+  🔑 Master Key: abc123...
+  🔑 default: def456...
+
+Functions:
+
+create_customer:
+  Invoke URL: https://myapp-development.azurewebsites.net/api/create_customer
+  URLs with keys:
+  🔑 App Master Key:
+    https://myapp-development.azurewebsites.net/api/create_customer?code=abc123...
+  🔑 App Default Key:
+    https://myapp-development.azurewebsites.net/api/create_customer?code=def456...
+  🔑 Function default:
+    https://myapp-development.azurewebsites.net/api/create_customer?code=xyz789...
+```
+
+### legend destroy
+
+Deletes all Azure resources for an environment. Includes multiple confirmation steps to prevent accidental deletion.
+
+```bash
+legend destroy [ENVIRONMENT]
+```
+
+Example:
+```bash
+legend destroy sit
+
+🟡  WARNING: This will delete ALL resources in environment: sit
+Resource Group: myapp-group-sit
+Function App: myapp-sit
+
+This action cannot be undone!
+
+Are you sure you want to proceed? (y/N): y
+
+To confirm, please type the function app name (myapp-sit):
+> myapp-sit
+
+Deleting resource group myapp-group-sit...
+✅ Resource group deletion started
+
+Note: Deletion may take several minutes to complete
+Check the Azure portal for status
+```
 
 ## Configuration
 

@@ -11,3 +11,4 @@ from . import provision
 from . import deploy
 from . import bootstrap
 from . import info
+from . import destroy

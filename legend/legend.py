@@ -3,7 +3,7 @@
 import sys
 import os
 import argparse
-from legend.commands import new, generate, run, test, console, provision, deploy, bootstrap, info
+from legend.commands import new, generate, run, test, console, provision, deploy, bootstrap, info, destroy
 
 def main():
     # Change to the directory where the legend command was invoked
@@ -42,6 +42,9 @@ def main():
     # Info command
     info_parser = subparsers.add_parser('info', help='Show information about the deployed Function App')
 
+    # Destroy command
+    destroy_parser = subparsers.add_parser('destroy', help='Delete all Azure resources for an environment')
+
     # If no args, show help
     if len(sys.argv) == 1:
         parser.print_help()
@@ -65,7 +68,8 @@ def main():
         'p': provision.run,
         'deploy': deploy.run,
         'bootstrap': bootstrap.run,
-        'info': info.run
+        'info': info.run,
+        'destroy': destroy.run
     }
 
     # Run the command with remaining args
