@@ -18,7 +18,7 @@ def start_repl(namespace):
 def import_function_app():
     """Import the function_app module."""
     if not os.path.exists('function_app.py'):
-        print("Error: function_app.py not found in current directory")
+        print("⛔️Error: function_app.py not found in current directory")
         return None
     
     try:

@@ -11,12 +11,12 @@ INSTALL_DIR="${1:-$DEFAULT_INSTALL_DIR}"
 
 # Check if install directory exists and is in PATH
 if [[ ! -d "$INSTALL_DIR" ]]; then
-    echo "Error: Install directory $INSTALL_DIR does not exist"
+    echo "⛔️ Error: Install directory $INSTALL_DIR does not exist"
     exit 1
 fi
 
 if [[ ! ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
-    echo "Warning: $INSTALL_DIR is not in your PATH"
+    echo "🟡 Warning: $INSTALL_DIR is not in your PATH"
 fi
 
 # Create symlink
@@ -29,5 +29,5 @@ chmod +x "$LEGEND_SCRIPT"
 # Create symlink, overwriting if it exists
 ln -sf "$LEGEND_SCRIPT" "$SYMLINK_PATH"
 
-echo "Installed legend CLI to $SYMLINK_PATH"
+echo "✅ Installed legend CLI to $SYMLINK_PATH"
 echo "You can now use 'legend' command from anywhere"

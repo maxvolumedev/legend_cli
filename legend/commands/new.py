@@ -227,8 +227,10 @@ def run(args):
     try:
         subprocess.run(["func", "--version"], check=True, capture_output=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Error: Azure Functions Core Tools (func CLI) is not installed.")
+        print("⛔️ Error: Azure Functions Core Tools (func CLI) is not installed.")
         print("\nTo install:")
+        print("\n legend bootstrap")
+        print("\n OR:")
         print("  brew install azure-functions-core-tools@4")
         print("\nOr visit: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local")
         return

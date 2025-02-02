@@ -47,7 +47,7 @@ def get_function_keys(resource_group: str, app_name: str, function_name: str) ->
         ], capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
-        print(f"⚠️  Warning: Failed to get keys for function {function_name}")
+        print(f"🟡 Warning: Failed to get keys for function {function_name}")
         print(f"Details: {e}")
         return {}
 
@@ -62,7 +62,7 @@ def get_host_keys(resource_group: str, app_name: str) -> Dict[str, str]:
         ], capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
-        print("⚠️  Warning: Failed to get host keys")
+        print("🟡  Warning: Failed to get host keys")
         print(f"Details: {e}")
         return {}
 
@@ -75,7 +75,7 @@ def run(args):
     # Load configuration
     config = load_config(args.environment)
     if not config:
-        print(f"Error: Could not load configuration for environment '{args.environment}'")
+        print(f"⛔️ Error: Could not load configuration for environment '{args.environment}'")
         return
 
     # Check if app exists

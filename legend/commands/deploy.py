@@ -21,7 +21,7 @@ def run(args):
     # Load configuration
     config = load_config(args.environment)
     if not config:
-        print(f"Error: Could not load configuration for environment '{args.environment}'")
+        print(f"⛔️ Error: Could not load configuration for environment '{args.environment}'")
         return
 
     print(f"\nDeploying to environment: {args.environment}")
