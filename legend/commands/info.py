@@ -19,65 +19,70 @@ class InfoCommand(Command):
 
     def get_functions(self, resource_group: str, app_name: str) -> List[Dict[str, Any]]:
         """Get list of functions in the app"""
-        result = self.run_azure_command([
-            "functionapp", "function", "list",
-            "--resource-group", resource_group,
-            "--name", app_name
-        ])
-        return result or []
+        result = self.run_azure_command(
+            [
+                "az",
+                "functionapp",
+                "function",
+                "list",
+                "--resource-group", resource_group,
+                "--name", app_name
+            ],
+            check=False
+        )
+        return result
 
     def get_function_keys(self, resource_group: str, app_name: str, function_name: str) -> Dict[str, str]:
         """Get function keys for a specific function"""
         result = self.run_azure_command([
+            "az",
             "functionapp", "function", "keys", "list",
             "--resource-group", resource_group,
             "--name", app_name,
             "--function", function_name
-        ])
-        return result or {}
+        ], check=False)
+        return result
 
     def get_host_keys(self, resource_group: str, app_name: str) -> Dict[str, str]:
         """Get host keys including master key"""
-        result = self.run_azure_command([
-            "functionapp", "keys", "list",
-            "--resource-group", resource_group,
-            "--name", app_name
-        ])
-        return result or {}
+        result = self.run_azure_command(
+            [
+                "az",
+                "functionapp", "keys", "list",
+                "--resource-group", resource_group,
+                "--name", app_name,            
+            ],
+            check=False
+        )
+        return result
 
     def get_hostname(self, resource_group: str, app_name: str) -> str:
         """Get the function app's hostname"""
-        result = self.run_azure_command([
-            "functionapp", "show",
-            "--resource-group", resource_group,
-            "--name", app_name,
-            "--query", "defaultHostName",
-            "-o", "tsv"
-        ])
-        return result or ""
+        result = self.run_azure_command(
+            [
+                "az",
+                "functionapp", "show",
+                "--resource-group", resource_group,
+                "--name", app_name,
+                "--query", "defaultHostName",
+                "-o", "tsv"
+            ],
+            check=False
+        )
+        return result
+
 
     def handle(self, args):
         if not self.validate_environment(args.environment):
             return
-            
-        # Validate required configuration
-        if not self.validate_config(
-            'azure.resource_group',
-            'azure.function_app'
-        ):
-            return
 
-        # Check if app exists
-        if not self.check_resource_exists('functionapp', self.config.azure.function_app, self.config.azure.resource_group):
-            self.error(f"Function app '{self.config.azure.function_app}' not found")
-            self.info("\nTo deploy your app:")
-            self.info("1. Run 'legend provision' to create Azure resources")
-            self.info("2. Run 'legend deploy' to deploy your code")
-            return
+        if not self.load_config(args.environment):
+            return    
 
         # Get host name for URLs - do this early to verify app is accessible
         hostname = self.get_hostname(self.config.azure.resource_group, self.config.azure.function_app)
         if not hostname:
+            self.error(f"Failed to get hostname for function app {self.config.azure.function_app}. Does the app exist?")
             return
 
         self.info(f"\nFunction App: {self.config.azure.function_app}")

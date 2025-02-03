@@ -175,7 +175,8 @@ class Command(ABC):
 
     def run_azure_command(self, 
                          cmd: List[str], 
-                         output_format: str = "json") -> Optional[Union[Dict, List, str]]:
+                         output_format: str = "json",
+                         **kwargs) -> Optional[Union[Dict, List, str]]:
         """Execute Azure CLI commands.
         
         Args:
@@ -185,8 +186,9 @@ class Command(ABC):
         Returns:
             Command output parsed according to output_format, or None if command fails
         """
-        full_cmd = ["az"] + cmd + ["-o", output_format]
-        result = self.run_subprocess(full_cmd)
+        full_cmd = cmd + ["-o", output_format]
+        print(full_cmd)
+        result = self.run_subprocess(full_cmd, **kwargs)
         if not result:
             return None
             
@@ -195,10 +197,6 @@ class Command(ABC):
             return json.loads(result.stdout)
         return result.stdout.strip()
 
-    def check_has_result(self, cmd):
-        res = self.run_subprocess("az monitor log-analytics workspace show --name test2-log-analytics-workspace --resource-group test2-group-sit -o json")
-        print(res)
-        return True
 
     def check_resource_exists(self,
                             resource_type: str,

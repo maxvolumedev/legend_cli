@@ -35,16 +35,23 @@ class ProvisionCommand(Command):
         )
 
         # provision resources using ARM templates in deployment
-        self.run_azure_command(
-            [
-                "deployment",
-                "group",
-                "create",
-                "--name", f"{self.config.settings.app_name}-{ env }", # FIXME: get this from config?
+        try:
+            self.run_subprocess(
+                [
+                    "az",
+                    "deployment",
+                    "group",
+                    "create",
+                    "--name", f"{self.config.settings.app_name}-{ env }", # FIXME: get this from config?
                 "--resource-group", self.config.azure.resource_group,
                 "--template-file", f"deployment/azuredeploy-{ env }.json",
                 "--parameters", f"@deployment/azuredeploy-{ env }.parameters.json"
-            ]
-        )
+                ],
+                check=True,
+                capture_output=False
+            )
+        except Exception as e:
+            if self.verbose:
+                print(e)
+            return    
 
-        pass
