@@ -1,3 +1,4 @@
+from .base import Command
 import argparse
 import subprocess
 import sys

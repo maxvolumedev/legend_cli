@@ -3,7 +3,7 @@
 import sys
 import os
 import argparse
-from legend.commands import new, generate, run, test, console, provision, deploy, bootstrap, info, destroy
+from legend.commands import deploy, bootstrap, info, destroy, console
 
 def main():
     # Change to the directory where the legend command was invoked
@@ -26,7 +26,7 @@ def main():
         # generate.command,
         # run.command,
         # test.command,
-        # console.command,
+        console.command,
         # provision.command,
         deploy.command,
         bootstrap.command,
@@ -34,11 +34,15 @@ def main():
         destroy.command
     ]
     
-    # Map commands by their names
-    COMMANDS = {cmd.name: cmd for cmd in commands}
+    # Map commands by their names and aliases
+    COMMANDS = {}
+    for cmd in commands:
+        COMMANDS[cmd.name] = cmd
+        for alias in cmd.aliases:
+            COMMANDS[alias] = cmd
 
     # Add each command's parser as a subparser
-    for cmd in COMMANDS.values():
+    for cmd in set(COMMANDS.values()):
         subparsers.add_parser(
             cmd.name,
             help=cmd.description,

@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-from ..lib.config import load_config
 from .base import Command
 
 
@@ -27,28 +26,35 @@ class DeployCommand(Command):
             return
 
         # Load configuration
-        config = load_config(args.environment)
+        config = self.load_config(args.environment)
         if not config:
             return
 
+        # Validate required configuration
+        if not self.validate_config(
+            'azure.resource_group',
+            'azure.function_app'
+        ):
+            return
+
         # Check if app exists
-        if not self.check_resource_exists('functionapp', config.azure.function_app, config.azure.resource_group):
-            self.error(f"Function app '{config.azure.function_app}' not found")
+        if not self.check_resource_exists('functionapp', self.config.azure.function_app, self.config.azure.resource_group):
+            self.error(f"Function app '{self.config.azure.function_app}' not found")
             print("\nTo deploy your app:")
             print("1. Run 'legend provision' to create Azure resources")
             print("2. Run 'legend deploy' to deploy your code")
             return
 
         self.info(f"\nDeploying to environment: {args.environment}")
-        self.info(f"Resource Group: {config.azure.resource_group}")
-        self.info(f"Function App: {config.azure.function_app}")
+        self.info(f"Resource Group: {self.config.azure.resource_group}")
+        self.info(f"Function App: {self.config.azure.function_app}")
 
         # Get Git deployment URL with embedded credentials
         self.info("\nGetting deployment URL...")
         result = self.run_subprocess([
             "az", "webapp", "deployment", "list-publishing-credentials",
-            "--resource-group", config.azure.resource_group,
-            "--name", config.azure.function_app,
+            "--resource-group", self.config.azure.resource_group,
+            "--name", self.config.azure.function_app,
             "--query", "scmUri",
             "-o", "tsv"
         ])
@@ -63,7 +69,7 @@ class DeployCommand(Command):
             return
             
         # Append <app_name>.git to the URL
-        git_url = f"{git_url}/{config.azure.function_app}.git"
+        git_url = f"{git_url}/{self.config.azure.function_app}.git"
         self.success("Got deployment URL")
         if self.verbose:
             # Show full URL in verbose mode

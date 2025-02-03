@@ -8,7 +8,7 @@ import sys
 import os
 from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
-from ..lib.config import load_config as load_config_from_lib
+from ..lib.config import Configuration, ConfigurationError
 
 from abc import ABC, abstractmethod
 
@@ -28,6 +28,7 @@ class Command(ABC):
         self.aliases = aliases or []
         self.parser = self.setup_parser()
         self.verbose = False
+        self._config: Optional[Configuration] = None
 
     def setup_parser(self) -> argparse.ArgumentParser:
         """Setup command-specific argument parser.
@@ -216,6 +217,22 @@ class Command(ABC):
         env_vars["LEGEND_ENVIRONMENT"] = environment
         return env_vars
 
+    def load_config(self, environment: str) -> bool:
+        """Load configuration for the specified environment
+        
+        Args:
+            environment: Name of the environment to load
+            
+        Returns:
+            bool: True if configuration was loaded successfully, False otherwise
+        """
+        try:
+            self._config = Configuration(environment)
+            return True
+        except ConfigurationError as e:
+            self.error(f"Failed to load configuration: {e}")
+            return False
+    
     def validate_environment(self, environment: str) -> bool:
         """Validate environment name and settings.
         
@@ -228,10 +245,35 @@ class Command(ABC):
         if environment == 'application':
             self.error("'application' is not a valid environment name - it is reserved for the base config file")
             return False
+        
+        return self.load_config(environment)
+    
+    @property
+    def config(self) -> Optional[Configuration]:
+        """Get the current configuration.
+        
+        Returns:
+            Configuration object if loaded, None otherwise
+        """
+        return self._config
+    
+    def validate_config(self, *required_keys: str) -> bool:
+        """Validate that required configuration keys are present
+        
+        Args:
+            *required_keys: Required configuration keys (supports dot notation)
             
-        config_file = Path('config') / f'{environment}.toml'
-        if not config_file.exists():
-            self.error(f"No configuration file found for environment '{environment}' at {config_file}")
+        Returns:
+            bool: True if all required keys are present, False otherwise
+        """
+        if not self._config:
+            self.error("No configuration loaded")
             return False
-        return True
+            
+        try:
+            self._config.validate_required(*required_keys)
+            return True
+        except ConfigurationError as e:
+            self.error(str(e))
+            return False
 
