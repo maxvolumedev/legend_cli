@@ -128,7 +128,7 @@
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
                 "siteConfig": {
                     "linuxFxVersion": "Python|3.11",
-                    "functionsRuntimeScaleMonitoringEnabled": true,
+                    "functionsRuntimeScaleMonitoringEnabled": false,
                     "appSettings": [
                         {
                             "name": "AzureWebJobsStorage",
