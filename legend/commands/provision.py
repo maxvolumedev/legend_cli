@@ -27,6 +27,7 @@ class ProvisionCommand(Command):
         # create resource group (safe to do even if already exists)
         self.run_azure_command(
             [
+                "az",
                 "group",
                 "create",
                 "--name", self.config.azure.resource_group,
