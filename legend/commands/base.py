@@ -254,6 +254,27 @@ class Command(ABC):
         
         return self.load_config(environment)
     
+    def render_template(self, template_path: str, output_path: str, context: dict):
+        """Render a template file with the given context.
+        
+        Args:
+            template_path: Path to the template file relative to templates dir
+            output_path: Path where the rendered file should be written
+            context: Dictionary of variables to pass to the template
+        """
+        if self.verbose:
+            self.info(f"Rendering {template_path} -> {output_path}")
+
+        env = Environment(loader=FileSystemLoader(self.templates_dir))
+        template = env.get_template(template_path)
+        
+        try:
+            with open(output_path, "w") as f:
+                f.write(template.render(**context))
+        except Exception as e:
+            self.error(f"Failed to render template {template_path}: {e}")
+            raise
+
     @property
     def config(self) -> Optional[Configuration]:
         """Get the current configuration.
