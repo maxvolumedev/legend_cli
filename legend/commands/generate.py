@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
 from .base import Command
 
 
@@ -13,7 +12,6 @@ class GenerateCommand(Command):
             description='Generate a new Azure Function',
             aliases=['g']
         )
-        self.templates_dir = Path(__file__).parent.parent / "templates"
 
     def add_arguments(self, parser):
         subparsers = parser.add_subparsers(dest='type', required=True)

@@ -8,6 +8,7 @@ import sys
 import os
 from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
 from ..lib.config import Configuration, ConfigurationError
 
 from abc import ABC, abstractmethod
@@ -265,10 +266,11 @@ class Command(ABC):
         if self.verbose:
             self.info(f"Rendering {template_path} -> {output_path}")
 
-        env = Environment(loader=FileSystemLoader(self.templates_dir))
-        template = env.get_template(template_path)
-        
         try:
+            templates_dir = Path(__file__).parent.parent / "templates"
+            env = Environment(loader=FileSystemLoader(templates_dir))
+            template = env.get_template(template_path)
+            
             with open(output_path, "w") as f:
                 f.write(template.render(**context))
         except Exception as e:
