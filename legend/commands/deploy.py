@@ -91,6 +91,10 @@ class DeployCommand(Command):
 
 
     def handle(self, args):
+        # First check if we're in a Legend project
+        if not self.is_legend_project():
+            return
+
         if not self.validate_environment(args.environment):
             return
 

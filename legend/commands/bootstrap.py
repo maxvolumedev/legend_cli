@@ -84,6 +84,10 @@ class BootstrapCommand(Command):
         )
         return result is not None
 
+    def needs_legend_project(self) -> bool:
+        return False
+
+
     def handle(self, args):
         """Check for missing dependencies and offer to install them"""
         if platform.system() != "Darwin":

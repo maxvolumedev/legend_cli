@@ -16,7 +16,7 @@ class ProvisionCommand(Command):
 
 
     def handle(self, args):
-        # - load config
+        # Load config
         self.load_config(args.environment)
         env = args.environment
 
@@ -35,7 +35,8 @@ class ProvisionCommand(Command):
             ]
         )
 
-        # provision resources using ARM templates in deployment
+
+        # provision resources using ARM templates in deployment folder
         try:
             self.run_subprocess(
                 [
@@ -44,9 +45,9 @@ class ProvisionCommand(Command):
                     "group",
                     "create",
                     "--name", f"{self.config.settings.app_name}-{ env }", # FIXME: get this from config?
-                "--resource-group", self.config.azure.resource_group,
-                "--template-file", f"deployment/azuredeploy-{ env }.json",
-                "--parameters", f"@deployment/azuredeploy-{ env }.parameters.json"
+                    "--resource-group", self.config.azure.resource_group,
+                    "--template-file", f"deployment/azuredeploy-{ env }.json",
+                    "--parameters", f"@deployment/azuredeploy-{ env }.parameters.json"
                 ],
                 check=True,
                 capture_output=False

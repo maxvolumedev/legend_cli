@@ -51,6 +51,14 @@ class Command(ABC):
         """
         pass
 
+    def needs_legend_project(self) -> bool:
+        """Whether the command requires a Legend project.
+        
+        Returns:
+            True if the command requires a Legend project, False otherwise
+        """
+        return True
+
     @abstractmethod
     def handle(self, args):
         """Handle the command execution.
@@ -67,6 +75,11 @@ class Command(ABC):
             args: The parsed command arguments
             verbose: Whether to enable verbose output
         """
+        # ensure we are inside a legend project if required
+        if self.needs_legend_project():
+            if not self.is_legend_project():
+                return
+
         self.verbose = args.verbose
         return self.handle(args)
     
@@ -197,42 +210,6 @@ class Command(ABC):
         return result.stdout.strip()
 
 
-    def check_resource_exists(self,
-                            resource_type: str,
-                            cmd: str = "show",                             
-                            name: str = None, 
-                            resource_group: Optional[str] = None) -> bool:
-        """Check if Azure resource exists.
-        
-        Args:
-            resource_type: Type of resource (functionapp, storage, etc.)
-            name: Name of the resource
-            resource_group: Optional resource group name
-            
-        Returns:
-            True if resource exists, False otherwise
-        """
-        cmd = [cmd, resource_type, cmd]
-        if name:
-            cmd.extend(["--name", name])
-        if resource_group:
-            cmd.extend(["--resource-group", resource_group])
-        result = self.run_azure_command(cmd)
-        return result is not None
-
-    def setup_environment(self, environment: str) -> Dict[str, str]:
-        """Setup environment variables and validation.
-        
-        Args:
-            environment: Name of the environment
-            
-        Returns:
-            Dict of environment variables
-        """
-        env_vars = os.environ.copy()
-        env_vars["LEGEND_ENVIRONMENT"] = environment
-        return env_vars
-
     def load_config(self, environment: str) -> bool:
         """Load configuration for the specified environment
         
@@ -248,6 +225,7 @@ class Command(ABC):
         except ConfigurationError as e:
             self.error(f"Failed to load configuration: {e}")
             return False
+    
     
     def validate_environment(self, environment: str) -> bool:
         """Validate environment name and settings.
@@ -286,6 +264,26 @@ class Command(ABC):
             self.error(f"Failed to render template {template_path}: {e}")
             raise
 
+    def is_legend_project(self) -> bool:
+        """Check if the current directory is a Legend project.
+        
+        Returns:
+            bool: True if the current directory appears to be a Legend project
+        """
+        # Check for key files and directories that indicate a Legend project
+        required_paths = [
+            "config/application.toml",  # Main config file
+            "deployment",              # Deployment templates directory
+        ]
+        
+        for path in required_paths:
+            if not (Path.cwd() / path).exists():
+                self.error(f"Not a Legend project (missing {path})")
+                self.info("\nRun 'legend new' to create a new Legend project")
+                return False
+                
+        return True
+
     @property
     def config(self) -> Optional[Configuration]:
         """Get the current configuration.
@@ -314,4 +312,3 @@ class Command(ABC):
         except ConfigurationError as e:
             self.error(str(e))
             return False
-

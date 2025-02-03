@@ -160,6 +160,9 @@ class NewCommand(Command):
         venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
         self.run_subprocess([venv_python, "-m", "pip", "install", "-r", "requirements-dev.txt"])
 
+    def needs_legend_project(self) -> bool:
+        return False
+
     def handle(self, args):
         if not self.check_requirements():
             return 1
