@@ -30,18 +30,8 @@ def validate_config(config: Dict[str, Any]) -> bool:
     
     return True
 
-def provision_environment(environment: str):
-    """Provision Azure resources for the specified environment"""
-    # Load and validate configuration
-    config = load_config(environment)
-    if not validate_config(config):
-        return
 
-    print(f"\nProvisioning environment: {environment}")
-    print("\nConfiguration:")
-    for key, value in config['azure'].items():
-        print(f"  {key}: {value}")
-
+def check_or_create_resource_group(config):
     # Check if resource group exists
     print("\nChecking if resource group exists...")
     try:
@@ -67,13 +57,14 @@ def provision_environment(environment: str):
                 print("Please either:")
                 print(f"1. Update the location in your config to '{existing_location}'")
                 print(f"2. Delete the existing resource group and run provision again to create it in '{desired_location}'")
-                return
+                sys.exit(1)
             print(f"Resource group '{config['azure']['resource_group']}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to create resource group")
         print(f"Details: {e}")
-        return
+        sys.exit(1)
 
+def check_or_create_storage_account(config):
     # Check if storage account exists
     storage_account_name = config['azure']['storage_account'][:24]
     print(f"\nChecking if storage account exists ({storage_account_name})...")
@@ -102,14 +93,15 @@ def provision_environment(environment: str):
                 print("Please either:")
                 print(f"1. Update the location in your config to '{existing_location}'")
                 print(f"2. Delete the existing storage account and run provision again to create it in '{desired_location}'")
-                return
+                sys.exit(1)
             print(f"Storage account '{storage_account_name}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to create storage account")
         print(f"Details: {e}")
-        return
+        sys.exit(1)
 
-    # Check if App Service Plan exists
+def check_or_create_app_service_plan(config):
+# Check if App Service Plan exists
     print("\nChecking if App Service Plan exists...")
     try:
         result = subprocess.run([
@@ -138,13 +130,14 @@ def provision_environment(environment: str):
                 print("Please either:")
                 print(f"1. Update the location in your config to '{existing_location}'")
                 print(f"2. Delete the existing App Service Plan and run provision again to create it in '{desired_location}'")
-                return
+                sys.exit(1)
             print(f"App Service Plan '{config['azure']['app_service_plan']}' already exists in {existing_location}")
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to create App Service Plan")
         print(f"Details: {e}")
-        return
+        sys.exit(1)
 
+def check_or_create_function_app(config):
     # Check if Function App exists
     print("\nChecking if Function App exists...")
     try:
@@ -175,8 +168,9 @@ def provision_environment(environment: str):
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to create Function App")
         print(f"Details: {e}")
-        return
+        sys.exit(1)
 
+def check_or_create_key_vault(config):
     # Create Key Vault if it doesn't exist
     print("\nChecking if Key Vault exists...")
     try:
@@ -207,11 +201,11 @@ def provision_environment(environment: str):
             ], capture_output=True, text=True, check=True)
             if result.stdout.strip().lower() == 'true':
                 print("⛔️ Error: Key Vault is configured with RBAC authorization. Please use a vault with access policies.")
-                return
+                sys.exit(1)
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to create/check Key Vault")
         print(f"Details: {e}")
-        return
+        sys.exit(1)
 
     # Get Function App's managed identity
     print("\nConfiguring Function App's managed identity...")
@@ -235,7 +229,7 @@ def provision_environment(environment: str):
         
         if not principal_id:
             print("⛔️ Error: Failed to get function app's managed identity")
-            return
+            sys.exit(1)
         
         print("✅ Managed identity configured")
 
@@ -252,9 +246,9 @@ def provision_environment(environment: str):
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to configure Key Vault access")
         print(f"Details: {e}")
-        return
+        sys.exit(1)
 
-    # Create Log Analytics Workspace if it doesn't exist
+# Create Log Analytics Workspace if it doesn't exist
     print("\nEnsuring Log Analytics Workspace exists...")
     try:
         # Try to get workspace ID
@@ -278,6 +272,7 @@ def provision_environment(environment: str):
         print("⛔️ Error: Failed to create Log Analytics Workspace")
         return
 
+def check_or_create_application_insights(config):
     # Create Application Insights
     print("\nCreating Application Insights...")
     try:
@@ -311,7 +306,33 @@ def provision_environment(environment: str):
     except subprocess.CalledProcessError as e:
         print("⛔️ Error: Failed to configure Application Insights")
         print(f"Details: {e}")
+        sys.exit(1)
+
+
+def provision_environment(environment: str):
+    """Provision Azure resources for the specified environment"""
+    # Load and validate configuration
+    config = load_config(environment)
+    if not validate_config(config):
         return
+
+    print(f"\nProvisioning environment: {environment}")
+    print("\nConfiguration:")
+    for key, value in config['azure'].items():
+        print(f"  {key}: {value}")
+
+    check_resource_group_exists(config)
+
+    check_or_create_storage_account(config)
+
+    check_or_create_app_service_plan(config)
+
+    check_or_create_function_app(config)
+
+    check_or_create_key_vault(config)
+
+    check_or_create_application_insights(config)
+
 
     print("\n✨ Azure resources have been provisioned successfully!")
     print(f"\nResource Group: {config['azure']['resource_group']}")
@@ -322,32 +343,31 @@ def provision_environment(environment: str):
     print(f"Log Analytics Workspace: {config['azure']['log_analytics_workspace']}")
     print("\nApplication is ready to be deployed!")
 
-def check_az_cli() -> bool:
+def check_az_cli():
     """Check if Azure CLI is installed"""
     try:
         subprocess.run(["az", "--version"], check=True, capture_output=True)
-        return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         print("⛔️ Error: Azure CLI is not installed.")
         print("\nTo install:")
         print("  brew update && brew install azure-cli")
         print("\nOr visit: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli")
-        return False
+        sys.exit(1)
 
-def az_login() -> bool:
+def az_login():
     """Ensure user is logged into Azure CLI"""
     try:
         # Check if already logged in
         subprocess.run(["az", "account", "show"], check=True, capture_output=True)
-        return True
+        return
     except subprocess.CalledProcessError:
         print("Logging into Azure...")
         try:
             subprocess.run(["az", "login"], check=True)
-            return True
+            return
         except subprocess.CalledProcessError:
             print("⛔️ Error: Failed to log in to Azure.")
-            return False
+            sys.exit(1)
 
 def register_providers() -> List[str]:
     """Register required Azure resource providers"""
@@ -409,12 +429,10 @@ def run(args):
 
     if not args.skip_registration:
         # Check prerequisites
-        if not check_az_cli():
-            sys.exit(1)
+        check_az_cli()
 
         # Ensure logged in
-        if not az_login():
-            sys.exit(1)
+        az_login()
 
         # Register providers
         providers = register_providers()
