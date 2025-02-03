@@ -187,7 +187,6 @@ class Command(ABC):
             Command output parsed according to output_format, or None if command fails
         """
         full_cmd = cmd + ["-o", output_format]
-        print(full_cmd)
         result = self.run_subprocess(full_cmd, **kwargs)
         if not result:
             return None
