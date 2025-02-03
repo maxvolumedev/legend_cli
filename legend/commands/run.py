@@ -40,7 +40,3 @@ class RunCommand(Command):
         except KeyboardInterrupt:
             self.info("\nStopping function app...")
             return 0
-
-
-# Command instance to be used by the CLI
-command = RunCommand()

@@ -74,7 +74,3 @@ class GenerateCommand(Command):
         else:
             self.error(f"Unknown generation type: {args.type}")
             return 1
-
-
-# Command instance to be used by the CLI
-command = GenerateCommand()

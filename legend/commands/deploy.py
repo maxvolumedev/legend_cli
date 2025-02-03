@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from subprocess import STDOUT
 from .base import Command
 
 
@@ -21,73 +22,127 @@ class DeployCommand(Command):
         parser.add_argument('environment',
                           help='Environment to deploy to (e.g., development, test, sit)')
 
+    def git_branches_identical(self, branch1: str, branch2: str) -> bool:
+        """Check if two git branches have identical content.
+        Returns True if branches are identical, False if there are differences."""
+        self.info(f"Checking if {branch1} matches {branch2}...")
+        
+        # First ensure both branches exist
+        for branch in [branch1, branch2]:
+            result = self.run_subprocess(["git", "rev-parse", "--verify", branch], check=False)
+            if result is None:
+                self.error(f"Branch '{branch}' does not exist")
+                return False
+        
+        # Compare the branches using git diff
+        result = self.run_subprocess(["git", "diff", "--quiet", f"{branch1}..{branch2}"], check=False)
+        
+        # git diff returns:
+        # - 0 (success) if branches are identical
+        # - 1 if there are differences
+        # - other codes for errors
+        if result is None:
+            self.error(f"Failed to compare branches {branch1} and {branch2}")
+            return False
+            
+        if result.returncode == 0:
+            self.success(f"Branches {branch1} and {branch2} are identical")
+            return True
+        elif result.returncode == 1:
+            self.warning(f"Found differences between {branch1} and {branch2}")
+            # Show a summary of differences
+            diff_stat = self.run_subprocess(["git", "diff", "--stat", f"{branch1}..{branch2}"], check=False)
+            if diff_stat and diff_stat.stdout:
+                self.info("\nChanges:")
+                self.info(diff_stat.stdout)
+            return False
+        else:
+            self.error(f"Error comparing branches: git diff returned {result.returncode}")
+            return False
+
+    def get_git_branch(self) -> str:
+        """Returns current git branch."""
+        self.info(f"Checking if current branch matches {self.config.azure.branch}...")
+        
+        result = self.run_subprocess(["git", "rev-parse", "--abbrev-ref", "HEAD"], check=False)
+        if result is None:
+            self.warning("Failed to get current git branch")
+            return False
+            
+        return result.stdout.strip()
+
+
+    def check_git_status(self) -> bool:
+        """Check if there are any uncommitted changes in git.
+        Returns True if working directory is clean, False if there are uncommitted changes."""
+        self.info("Checking for uncommitted changes...")
+        
+        result = self.run_subprocess(["git", "status", "--porcelain"])
+        if result is None:
+            self.warning("Failed to check git status")
+            return False
+            
+        if result.stdout.strip():
+            self.warning("You have uncommitted changes. You should commit or stash them before deploying.")
+            return False
+            
+        self.success("Working directory is clean")
+        return True
+
+
     def handle(self, args):
         if not self.validate_environment(args.environment):
             return
 
         # Load configuration
-        config = self.load_config(args.environment)
-        if not config:
+        if not self.load_config(args.environment):
             return
 
-        # Validate required configuration
-        if not self.validate_config(
-            'azure.resource_group',
-            'azure.function_app'
-        ):
-            return
+        status = True
 
-        # Check if app exists
-        if not self.check_resource_exists('functionapp', self.config.azure.function_app, self.config.azure.resource_group):
-            self.error(f"Function app '{self.config.azure.function_app}' not found")
-            print("\nTo deploy your app:")
-            print("1. Run 'legend provision' to create Azure resources")
-            print("2. Run 'legend deploy' to deploy your code")
-            return
+        # Safeguards:
+        # 1. check if there are uncommitted changes in git
+        status &= self.check_git_status()
 
-        self.info(f"\nDeploying to environment: {args.environment}")
-        self.info(f"Resource Group: {self.config.azure.resource_group}")
-        self.info(f"Function App: {self.config.azure.function_app}")
+        # 2. check if the current git branch matches config.azure.branch
+        git_branch = self.get_git_branch()
+        status &= git_branch == self.config.azure.branch
 
-        # Get Git deployment URL with embedded credentials
-        self.info("\nGetting deployment URL...")
-        result = self.run_subprocess([
-            "az", "webapp", "deployment", "list-publishing-credentials",
-            "--resource-group", self.config.azure.resource_group,
-            "--name", self.config.azure.function_app,
-            "--query", "scmUri",
-            "-o", "tsv"
-        ])
-        
-        if not result:
-            self.error("Failed to get deployment URL")
-            return
-            
-        git_url = result.stdout.strip()
-        if not git_url:
-            self.error("Failed to get deployment URL - empty response")
-            return
-            
-        # Append <app_name>.git to the URL
-        git_url = f"{git_url}/{self.config.azure.function_app}.git"
-        self.success("Got deployment URL")
-        if self.verbose:
-            # Show full URL in verbose mode
-            self.info(f"Deployment URL: {git_url}")
+        # 3. if env is production, also check that current branch has no changes to uat branch
+        if args.environment == "production":
+            status &= self.git_branches_identical(git_branch, "uat") # TODO: make uat branch configurable?
 
-        # Push to Azure
-        self.info(f"\nPushing branch {config.branch} to {args.environment}...")
-        result = self.run_subprocess(["git", "push", git_url, f"{config.branch}:master"])
-        
-        if not result:
-            self.error("Failed to push to Azure")
-            self.info("\nTroubleshooting:")
-            self.info("1. Ensure you have committed all your changes")
-            self.info("2. If this is your first deployment, you may need to push with -f:")
-            self.info(f"   git push -f {git_url} main:master")
+        if not status:
+            # Print helpful message and ask for y/N confirmation before deploying
+            self.warning("There are potential issues with your deployment, see output above..")
+            confirm = input("Are you sure you want to proceed? (y/N): ")
+            if confirm.lower() != 'y':                    
+                return
+
+
+        if args.environment == "production":        
+            # if not git_branch_ok, ask user to confirm deployment by typing the current branch name as confirmation
+            if not git_branch_ok:
+                print("\nTo deploy to production, current branch should be the same as config.azure.branch")
+                confirm = input(f"Please type the current branch name ({ git_branch }): ")
+                if confirm.lower() != git_branch:
+                    return
+
+
+        # call azure cli: func azure functionapp publish test3-sit
+        try:
+            self.run_subprocess(
+                [
+                    "func",
+                    "azure",
+                    "functionapp",
+                    "publish",
+                    self.config.azure.function_app # FIXME: need to make sure this is synced with our JSON deployment params
+                ],
+                check=True,
+                capture_output=False
+            )
+        except Exception as e:            
             return
 
         self.completed(f"Successfully deployed to {args.environment}!")
-
-
-command = DeployCommand()

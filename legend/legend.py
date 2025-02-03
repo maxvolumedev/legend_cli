@@ -3,7 +3,7 @@
 import sys
 import os
 import argparse
-from legend.commands import new, deploy, bootstrap, info, destroy, console, test, run, generate
+from legend.commands import new, deploy, bootstrap, info, destroy, console, test, run, generate, provision
 
 def main():
     # Change to the directory where the legend command was invoked
@@ -22,16 +22,16 @@ def main():
 
     # Get all command instances
     commands = [
-        new.command,
-        generate.command,
-        run.command,
-        test.command,
-        console.command,
-        # provision.command,
-        deploy.command,
-        bootstrap.command,
-        info.command,
-        destroy.command
+        new.NewCommand(),
+        generate.GenerateCommand(),
+        run.RunCommand(),
+        test.TestCommand(),
+        console.ConsoleCommand(),
+        provision.ProvisionCommand(),
+        deploy.DeployCommand(),
+        bootstrap.BootstrapCommand(),
+        info.InfoCommand(),
+        destroy.DestroyCommand(),
     ]
     
     # Map commands by their names and aliases

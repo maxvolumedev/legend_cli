@@ -7,6 +7,9 @@ app_name = "{{ app_name }}"
 [azure]
 # Azure region to deploy to
 location = "{{ azure_location }}"
+
+[log_analytics]
+# Log Analytics workspace name
 log_analytics_workspace = "{{ app_name }}-log-analytics-workspace"
 
 [api]

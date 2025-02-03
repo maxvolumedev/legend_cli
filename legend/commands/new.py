@@ -60,7 +60,7 @@ class NewCommand(Command):
         os.chdir(app_name)
 
         # Create project directories
-        for directory in [".github/workflows", "test", "lib", "config", "bin"]:
+        for directory in [".github/workflows", "test", "lib", "config", "bin", "deployment"]:
             os.makedirs(directory, exist_ok=True)
 
     def create_dependency_files(self):
@@ -95,12 +95,24 @@ class NewCommand(Command):
         # Create environment configuration files
         environments = ["development", "test", "sit", "uat", "production"]
         for environment in environments:
-            config_file = f"config/environment-{environment}.toml"
+            config_file = f"config/{environment}.toml"            
             template_name = "config/environment-local.toml" if environment in ["development", "test"] else "config/environment.toml"
             
             self.render_template(
                 template_name,
                 config_file,
+                {
+                    "environment": environment,
+                    "function_app": f"{normalized_name}-{environment}",
+                    "resource_group": f"{normalized_name}-group-{environment}",
+                }
+            )
+
+            if environment in ["development", "test"]:
+                continue
+
+            self.render_template("deployment/azuredeploy.json", f"deployment/azuredeploy-{environment}.json", {} )
+            self.render_template("deployment/azuredeploy.parameters.json", f"deployment/azuredeploy-{environment}.parameters.json",
                 {
                     "app_name": normalized_name,
                     "environment": environment,
@@ -108,9 +120,11 @@ class NewCommand(Command):
                     "storage_account": names.get_storage_name(normalized_name, environment),
                     "function_app": f"{normalized_name}-{environment}",
                     "app_service_plan": f"{normalized_name}-plan-{environment}",
-                    "key_vault_name": names.get_keyvault_name(normalized_name, environment)
+                    "key_vault_name": names.get_keyvault_name(normalized_name, environment),
+                    "location": location,
+                    "logAnalyticsWorkspaceName": f"{app_name}-log-analytics-workspace"
                 }
-            )
+            )          
 
     def copy_lib_templates(self, app_name: str):
         """Copy library templates to the project."""
@@ -150,48 +164,44 @@ class NewCommand(Command):
         if not self.check_requirements():
             return 1
 
-        try:
-            # Create project structure
-            self.create_project_structure(args.name)
+        # try:
+        # Create project structure
+        self.create_project_structure(args.name)
 
-            # Create dependency files
-            self.create_dependency_files()
+        # Create dependency files
+        self.create_dependency_files()
 
-            # Create project files from templates
-            for template in ["setup.py", "README.md", "bin/legend", ".github/workflows/deploy.yml"]:
-                self.render_template(template, template, {"app_name": args.name})
-            
-            # Make the binstub executable
-            Path("bin/legend").chmod(0o755)
+        # Create project files from templates
+        for template in ["setup.py", "README.md", "bin/legend", ".github/workflows/deploy.yml"]:
+            self.render_template(template, template, {"app_name": args.name})
+        
+        # Make the binstub executable
+        Path("bin/legend").chmod(0o755)
 
-            # Create configuration files
-            self.create_config_files(args.name, args.location)
+        # Create configuration files
+        self.create_config_files(args.name, args.location)
 
-            # Copy library templates
-            self.copy_lib_templates(args.name)
+        # Copy library templates
+        self.copy_lib_templates(args.name)
 
-            # Initialize virtual environment
-            self.init_virtual_env()
+        # Initialize virtual environment
+        self.init_virtual_env()
 
-            # Initialize Git
-            self.run_subprocess(["git", "init"])
+        # Initialize Git
+        self.run_subprocess(["git", "init"])
 
-            self.completed("Created new Legend app!")
-            self.info(f"\nNext steps:")
-            self.info(f"  cd {args.name}")
-            self.info(f"  legend generate function             # Generate a new function")
-            self.info(f"  legend test                          # Run tests")
-            self.info(f"  legend run                           # Run function app locally")
-            self.info(f"  legend console                       # Start interactive console")
-            self.info(f"  legend provision                     # Provision Azure resources")
-            self.info(f"  legend deploy                        # Deploy to Azure")
-            
-            return 0
+        self.completed("Created new Legend app!")
+        self.info(f"\nNext steps:")
+        self.info(f"  cd {args.name}")
+        self.info(f"  legend generate function             # Generate a new function")
+        self.info(f"  legend test                          # Run tests")
+        self.info(f"  legend run                           # Run function app locally")
+        self.info(f"  legend console                       # Start interactive console")
+        self.info(f"  legend provision                     # Provision Azure resources")
+        self.info(f"  legend deploy                        # Deploy to Azure")
+        
+        return 0
 
-        except Exception as e:
-            self.handle_error(e, "Failed to create new app")
-            return 1
-
-
-# Command instance to be used by the CLI
-command = NewCommand()
+        # except Exception as e:
+        #     self.handle_error(e, "Failed to create new app")
+        #     return 1

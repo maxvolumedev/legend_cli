@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "{{ location }}"
+        },
+        "functionAppName": {
+            "value": "{{ function_app }}"
+        },
+        "storageAccountName": {
+            "value": "{{ storage_account }}"
+        },
+        "appServicePlanName": {
+            "value": "{{ app_service_plan }}"
+        },
+        "appServicePlanSku": {
+            "value": "B1"
+        },
+        "keyVaultName": {
+            "value": "{{ key_vault_name }}"
+        },
+        "logAnalyticsWorkspaceName": {
+            "value": "{{ app_name }}-logs"
+        }
+    }
+}

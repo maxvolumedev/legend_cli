@@ -1,8 +1,9 @@
 # Local environment configuration
 
-[app]
-name = "{{ app_name }}-{{ environment }}"  # Local app name
+[api]
+# External API endpoints for {{ environment }} environment
+# endpoint_1.base_url = "https://api.example.com/{{ environment }}"
 
-[storage]
-# Use Azurite for local development
-connection_string = "UseDevelopmentStorage=true"
+[settings]
+# Add any additional configuration parameters here
+# debug = {{ "true" if environment in ["development", "test"] else "false" }}

@@ -112,7 +112,3 @@ Example:
         
         self.print_help(app)
         self.start_repl(namespace)
-
-
-# Command instance to be used by the CLI
-command = ConsoleCommand()

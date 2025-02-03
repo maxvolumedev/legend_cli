@@ -64,6 +64,3 @@ class DestroyCommand(Command):
         except Exception as e:
             self.error(f"Failed to delete resource group: {str(e)}")
             return
-
-# Command instance to be used by the CLI
-command = DestroyCommand()

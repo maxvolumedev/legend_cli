@@ -126,6 +126,3 @@ class BootstrapCommand(Command):
                 self.info("  Please install manually:")
                 if dep.homepage:
                     self.info(f"  {dep.homepage}")
-
-
-command = BootstrapCommand()

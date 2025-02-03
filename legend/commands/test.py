@@ -63,7 +63,3 @@ class TestCommand(Command):
         except Exception as e:
             self.error(f"Unexpected error running tests: {e}")
             return 1
-
-
-# Command instance to be used by the CLI
-command = TestCommand()

@@ -155,7 +155,9 @@ class Command(ABC):
             subprocess_args = {
                 'text': True,
                 'capture_output': True,
-                'env': process_env
+                'env': process_env,
+                'stdout': None,
+                'stderr': None,
             }
             subprocess_args.update(kwargs)
             
@@ -165,6 +167,8 @@ class Command(ABC):
                 **subprocess_args
             )
         except subprocess.CalledProcessError as e:
+            if check:
+                raise e
             if self.verbose:
                 self.handle_error(e, f"Command failed: {' '.join(cmd)}")
             return None
@@ -191,9 +195,15 @@ class Command(ABC):
             return json.loads(result.stdout)
         return result.stdout.strip()
 
-    def check_resource_exists(self, 
-                            resource_type: str, 
-                            name: str, 
+    def check_has_result(self, cmd):
+        res = self.run_subprocess("az monitor log-analytics workspace show --name test2-log-analytics-workspace --resource-group test2-group-sit -o json")
+        print(res)
+        return True
+
+    def check_resource_exists(self,
+                            resource_type: str,
+                            cmd: str = "show",                             
+                            name: str = None, 
                             resource_group: Optional[str] = None) -> bool:
         """Check if Azure resource exists.
         
@@ -205,7 +215,9 @@ class Command(ABC):
         Returns:
             True if resource exists, False otherwise
         """
-        cmd = [resource_type, "show", "--name", name]
+        cmd = [cmd, resource_type, cmd]
+        if name:
+            cmd.extend(["--name", name])
         if resource_group:
             cmd.extend(["--resource-group", resource_group])
         result = self.run_azure_command(cmd)

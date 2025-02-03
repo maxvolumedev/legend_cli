@@ -1,31 +1,9 @@
 # {{ environment | upper }} Environment Configuration
 
 [azure]
-# Resource group name
-resource_group = "{{ resource_group }}"
-
-# Storage account name (must be globally unique, lowercase alphanumeric, max 24 chars)
-storage_account = "{{ storage_account }}"
-
-# Function app name (must be globally unique)
 function_app = "{{ function_app }}"
-
-# App Service Plan name
-app_service_plan = "{{ app_service_plan }}"
-
-# App Service Plan SKU
-{% if environment in ['production'] %}
-plan_sku = ""  # Must be explicitly set for production
-{% else %}
-plan_sku = "B1"  # Basic tier for non-production
-{% endif %}
-
-# Key Vault name (must be globally unique)
-key_vault_name = "{{ key_vault_name }}"
-
-# Git branch to deploy to this environment
+resource_group = "{{ resource_group }}"
 branch = "{{ environment }}"
-
 
 [api]
 # External API endpoints for {{ environment }} environment

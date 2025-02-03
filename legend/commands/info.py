@@ -143,6 +143,3 @@ class InfoCommand(Command):
                 for key_name, key_value in valid_keys.items():
                     self.info(f"  🔑 Function {key_name}:")
                     self.info(f"    {func.get('invokeUrlTemplate')}?code={key_value}")
-
-# Command instance to be used by the CLI
-command = InfoCommand()
