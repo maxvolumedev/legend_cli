@@ -86,6 +86,14 @@ Example:
     """)
 
     def handle(self, args):
+        # Use the appropriate Python executable based on OS
+        venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
+        
+        # Check if virtual environment exists
+        if not os.path.exists(venv_python):
+            self.error("Virtual environment not found. Run 'legend bootstrap' first")
+            return 1
+
         app = self.import_function_app()
         if not app:
             return
