@@ -129,15 +129,15 @@ class Command(ABC):
     def run_subprocess(self, 
                       cmd: List[str], 
                       check: bool = True,
-                      capture_output: bool = True,
-                      env: Optional[Dict[str, str]] = None) -> Optional[subprocess.CompletedProcess]:
+                      env: Optional[Dict[str, str]] = None,
+                      **kwargs) -> Optional[subprocess.CompletedProcess]:
         """Safe subprocess execution with error handling.
         
         Args:
             cmd: Command and arguments to run
             check: Whether to raise an exception on non-zero exit
-            capture_output: Whether to capture stdout/stderr
             env: Optional environment variables dict
+            **kwargs: Additional arguments passed directly to subprocess.run
             
         Returns:
             CompletedProcess instance if successful, None if failed
@@ -150,12 +150,18 @@ class Command(ABC):
             if env:
                 process_env.update(env)
             
+            # Set some defaults that can be overridden by kwargs
+            subprocess_args = {
+                'text': True,
+                'capture_output': True,
+                'env': process_env
+            }
+            subprocess_args.update(kwargs)
+            
             return subprocess.run(
                 cmd,
                 check=check,
-                text=True,
-                capture_output=capture_output,
-                env=process_env
+                **subprocess_args
             )
         except subprocess.CalledProcessError as e:
             if self.verbose:
