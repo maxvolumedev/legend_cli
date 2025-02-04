@@ -20,8 +20,6 @@ class TestCommand(Command):
                           help='Arguments to pass to pytest')
 
     def handle(self, args):
-        self.info("Running tests with pytest...")
-        
         # Use the appropriate Python executable based on OS
         venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
         
@@ -35,31 +33,15 @@ class TestCommand(Command):
         env["LEGEND_ENVIRONMENT"] = "test"
         
         try:
+            # Run pytest with -v for verbose output and --no-header to suppress pytest header
             result = subprocess.run(
-                [venv_python, "-m", "pytest"] + args.pytest_args,
+                [venv_python, "-m", "pytest", "-v", "--no-header"] + args.pytest_args,
                 check=False,
                 env=env,
-                capture_output=True,
                 text=True
             )
-            
-            # Print test output
-            if result.stdout:
-                print(result.stdout)
-            if result.stderr:
-                print(result.stderr, file=sys.stderr)
-                
-            # Report test status
-            if result.returncode == 0:
-                self.success("All tests passed!")
-            else:
-                self.error(f"Tests failed with exit code {result.returncode}")
-                
             return result.returncode
             
-        except subprocess.CalledProcessError as e:
-            self.error(f"Failed to run tests: {e}")
-            return 1
         except Exception as e:
-            self.error(f"Unexpected error running tests: {e}")
+            self.error(f"Failed to run tests: {e}")
             return 1
