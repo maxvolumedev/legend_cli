@@ -230,13 +230,17 @@ To manually specify the environment, if running code directly:
 ```bash
 export LEGEND_ENVIRONMENT=development  # Or test, sit, uat, production
 ```
-If not specified, the environment defaults to `development`.
 
 To access configuration in your code:
 ```python
 config = Configuration()
 
 endpoint = config.api.some_endpoint_url # e.g for environment-specific target API endpoints
+```
+
+Or pass the environment name directly to Configuration:
+```
+config = Configuration("sit")
 ```
 
 ### Project Structure
