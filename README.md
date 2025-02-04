@@ -233,6 +233,7 @@ export LEGEND_ENVIRONMENT=development  # Or test, sit, uat, production
 
 To access configuration in your code:
 ```python
+from config import Configuration
 config = Configuration()
 
 endpoint = config.api.some_endpoint_url # e.g for environment-specific target API endpoints
