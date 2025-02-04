@@ -19,9 +19,6 @@
         },
         "keyVaultName": {
             "value": "{{ key_vault_name }}"
-        },
-        "logAnalyticsWorkspaceName": {
-            "value": "{{ app_name }}-logs"
         }
     }
 }
