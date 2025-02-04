@@ -258,6 +258,13 @@ class Command(ABC):
             env = Environment(loader=FileSystemLoader(templates_dir))
             template = env.get_template(template_path)
             
+            output_file = Path(output_path)
+            if output_file.exists():
+                response = input(f"File {output_path} already exists. Overwrite? [Y/n] ")
+                if response.lower() == 'n':
+                    self.info(f"Skipping {output_path}")
+                    return
+                
             with open(output_path, "w") as f:
                 f.write(template.render(**context))
         except Exception as e:
