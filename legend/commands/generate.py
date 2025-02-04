@@ -10,7 +10,7 @@ class GenerateCommand(Command):
     def __init__(self):
         super().__init__(
             name='generate',
-            description='Generate a new Azure Function',
+            description='Generate a new Azure Function or other components',
             aliases=['g']
         )
 
@@ -21,7 +21,7 @@ class GenerateCommand(Command):
         func_parser = subparsers.add_parser(
             'function', 
             aliases=['f'], 
-            help='Generate a new function'
+            help='Add a new Function to the project (will be added to function_app.py)'
         )
         func_parser.add_argument(
             'name', 
@@ -32,9 +32,17 @@ class GenerateCommand(Command):
             default='HTTP trigger',
             help='Function template to use (default: HTTP trigger)'
         )
+        func_parser.add_argument(
+            '--skip_test',  
+            default=False,
+            action='store_true',
+            help='Skip generating the test file'
+        )
+
+        # Workflow subcommand
         workflow_parser = subparsers.add_parser(
             'github-workflow',
-            help='Generate a new GitHub workflow'
+            help='Generate and configure a new CI/CD GitHub deployment workflow for an environment'
         )
         workflow_parser.add_argument(
             'environment', 
@@ -42,7 +50,7 @@ class GenerateCommand(Command):
         )
 
 
-    def generate_function(self, name: str, template: str):
+    def generate_function(self, name: str, template: str, skip_test: bool = False):
         """Generate a new Azure Function.
         
         Args:
@@ -59,21 +67,19 @@ class GenerateCommand(Command):
             )
         except Exception as e:
             self.error(f"Failed to generate function: {e}")
-            return False
+            return False        
 
-        # Create test directory
-        os.makedirs("test/functions", exist_ok=True)
-
-        # Generate test file
-        try:
-            self.info("Generating test file: test/functions/{name}_test.py")
-            self.render_template(
-                "test/function.py",
-                f"test/functions/{name}_test.py",
-                {"function_name": name}
+        if not skip_test:
+            # Generate test file
+            try:
+                self.info("Generating test file: test/functions/{name}_test.py")
+                self.render_template(
+                    "test/function.py",
+                    f"test/functions/{name}_test.py",
+                    {"function_name": name}
             )
-        except Exception:
-            return False
+            except Exception:
+                return False
 
         self.completed(f"Function '{name}' generated successfully!")
         return True
