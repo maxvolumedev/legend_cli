@@ -20,7 +20,7 @@ class NewCommand(Command):
 
         # Development dependencies
         self.dev_deps = [
-            "git+https://github.com/maxvolumedev/legend_cli.git",  # we don't need to deploy the legend cli
+            "git+https://github.com/maxvolumedev/legend_cli.git",  # dev/test only; we don't need to deploy the legend cli
             "tomli>=2.0.1  # For reading TOML configuration files",
             "pytest>=7.4.0",
         ]
@@ -122,7 +122,6 @@ class NewCommand(Command):
                     "app_service_plan": f"{normalized_name}-plan-{environment}",
                     "key_vault_name": names.get_keyvault_name(normalized_name, environment),
                     "location": location,
-                    "logAnalyticsWorkspaceName": f"{app_name}-log-analytics-workspace"
                 }
             )          
 
@@ -175,7 +174,7 @@ class NewCommand(Command):
         self.create_dependency_files()
 
         # Create project files from templates
-        for template in ["setup.py", "README.md", "bin/legend", ".github/workflows/deploy.yml"]:
+        for template in ["setup.py", "README.md", "bin/legend"]:
             self.render_template(template, template, {"app_name": args.name})
         
         # Make the binstub executable
@@ -200,11 +199,8 @@ class NewCommand(Command):
         self.info(f"  legend test                          # Run tests")
         self.info(f"  legend run                           # Run function app locally")
         self.info(f"  legend console                       # Start interactive console")
-        self.info(f"  legend provision                     # Provision Azure resources")
-        self.info(f"  legend deploy                        # Deploy to Azure")
+        self.info(f"  legend provision <env>               # Provision Azure resources for env")
+        self.info(f"  legend deploy <env>                  # Deploy env to Azure")
+        self.info(f"  legend info <env>                    # Show app info for env, including deployed function URLs")
         
         return 0
-
-        # except Exception as e:
-        #     self.handle_error(e, "Failed to create new app")
-        #     return 1

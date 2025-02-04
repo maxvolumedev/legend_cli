@@ -1,5 +1,5 @@
 import azure.functions as func
-from function_app import {{ function_name }}
+import function_app as app
 
 def test_{{ function_name }}_success():
     # Construct a mock HTTP request
@@ -11,7 +11,7 @@ def test_{{ function_name }}_success():
     )
 
     # Call the function
-    resp = {{ function_name }}(req)
+    resp = app.{{ function_name }}(req)
 
     # Check the response
     assert resp.status_code == 200

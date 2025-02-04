@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 from .base import Command
 
@@ -31,6 +32,15 @@ class GenerateCommand(Command):
             default='HTTP trigger',
             help='Function template to use (default: HTTP trigger)'
         )
+        workflow_parser = subparsers.add_parser(
+            'github-workflow',
+            help='Generate a new GitHub workflow'
+        )
+        workflow_parser.add_argument(
+            'environment', 
+            help='Environment to configure for github workflow (e.g., sit, uat, production)'
+        )
+
 
     def generate_function(self, name: str, template: str):
         """Generate a new Azure Function.
@@ -68,9 +78,83 @@ class GenerateCommand(Command):
         self.completed(f"Function '{name}' generated successfully!")
         return True
 
+    def is_gh_logged_in(self):
+        result = self.run_subprocess(["gh", "auth", "status"])
+        return result.returncode == 0  # 0 means success, non-zero means failure
+
+
+    def generate_github_workflow(self, env):
+        # generate new github workflow template from templates/.github/deploy.yml to .github/workflows/deploy-<env>.yml
+        self.render_template(
+            ".github/workflows/deploy.yml",
+            f".github/workflows/deploy-{env}.yml",
+            {
+                "app_name": self.config.azure.function_app,
+                "environment": env
+            }
+        )
+
+        # get fully qualified id for the resource group
+        resource_group_id = self.run_azure_command(
+            [
+                "az",
+                "group",
+                "show",
+                "--name", self.config.azure.resource_group,
+                "--query", "id",
+                "-o", "tsv"
+            ]
+        )
+
+        # create azure service principal
+        principal = self.run_subprocess(
+            [
+                "az",
+                "ad",
+                "sp",
+                "create-for-rbac",
+                "--name", f"{self.config.azure.function_app}-sp",
+                "--role", "Contributor",
+                "--scopes", resource_group_id,
+                "--sdk-auth",
+                "-o", "json"
+            ]
+        ).stdout.replace("\n"," ")
+        print(principal)
+
+        if not self.is_gh_logged_in():
+            # log in to github
+            self.run_subprocess(
+                [
+                    "gh",
+                    "auth",
+                    "login"
+                ],
+                capture_output=False
+            )
+
+        # configure github secret using gh
+        self.run_subprocess(
+            [
+                "gh",
+                "secret",
+                "set",
+                f"AZURE_CREDENTIALS_{ env.upper() }"
+            ],
+            input=principal,
+            text=True,
+            check=True
+        )
+        
+
     def handle(self, args):
+        if not self.load_config(args.environment):
+            return 1
+
         if args.type in ['function', 'f']:
             return 0 if self.generate_function(args.name, args.template) else 1
+        elif args.type in ['github-workflow', 'w']:
+            return 0 if self.generate_github_workflow(args.environment) else 1
         else:
             self.error(f"Unknown generation type: {args.type}")
             return 1

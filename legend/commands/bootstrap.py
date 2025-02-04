@@ -54,6 +54,12 @@ class BootstrapCommand(Command):
                 install_cmd="brew install azure-cli",
                 homepage="https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",
             ),
+            Dependency(
+                name="Github CLI",
+                check_cmd="gh --version",
+                install_cmd="brew install gh",
+                homepage="https://github.com/cli/cli",
+            ),
         ]
 
     def check_dependency(self, dep: Dependency) -> bool:
