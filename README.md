@@ -1,12 +1,23 @@
 # Legend CLI
 
-A command-line interface for managing Azure Function apps
+An opinionated command-line interface for building, managing and running Azure Function apps
+
+## Key Features
+
+- **Project Scaffolding**: Create new Azure Function apps with a well-structured project layout
+- **Environment Management**: Built-in support for multiple environments (development, test, sit, uat, production)
+- **Configuration Management**: TOML-based configuration system with environment-specific settings
+- **Local Development**: Integrated tools for local development and testing
+- **Azure Integration**: Seamless provisioning and deployment to Azure
+- **CI/CD Setup**: Automated GitHub Actions workflow generation
+- **Testing Framework**: Built-in test structure and utilities
+- **Interactive Console**: REPL environment for quick testing and debugging
 
 ## Prerequisites
 
 - [Python 3.9 or higher](https://www.python.org/downloads/)
-- [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local)
-- [Azure CLI (for deployment)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+- Git
+- Homebrew
 
 ## Installation
 
