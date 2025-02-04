@@ -7,7 +7,7 @@ This tutorial will walk you through creating and deploying your first Azure Func
 Before you begin, make sure you have:
 - [Python 3.9 or higher](https://www.python.org/downloads/)
 - An Azure subscription
-- A GitHub account (for CI/CD)
+- A GitHub account (for CI/CD via GitHub workflows)
 
 ## Step 1: Installation
 
@@ -139,7 +139,32 @@ This shows:
 - Access keys
 - Resource information
 
-## Step 10: Set Up CI/CD
+## Step 10: Publish project to GitHub
+
+1. Create a new repository on GitHub for your project
+
+2. Initialize git in your project directory if you haven't already:
+```bash
+git init
+```
+
+3. Add your GitHub repository as the remote origin:
+```bash
+git remote add origin https://github.com/username/your-repo-name.git
+```
+
+4. Stage and commit your files:
+```bash
+git add .
+git commit -m "Initial commit"
+```
+
+5. Push your code to GitHub:
+```bash
+git push -u origin main
+```
+
+## Step 11: Set Up CI/CD
 
 Generate a GitHub Actions workflow:
 
@@ -159,8 +184,7 @@ Now that you have your first function app up and running, you might want to:
 1. Add more functions using `legend generate function`
 2. Set up additional environments (uat, production)
 3. Customize your configuration in `config/`
-4. Add shared code in the `lib/` directory
-5. Explore the [command reference docs](overview.md#getting-started)
+4. Explore the [command reference docs](overview.md#getting-started)
 
 ## Troubleshooting
 
