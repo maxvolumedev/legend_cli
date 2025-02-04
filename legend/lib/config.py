@@ -1,6 +1,5 @@
-import os
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any
 from types import SimpleNamespace
 import tomli
 
@@ -13,15 +12,18 @@ class ConfigurationError(Exception):
 class Configuration:
     """Manages environment-specific configuration with dot notation access"""
     
-    def __init__(self, environment: str):
+    def __init__(self, environment: str=os.getenv("LEGEND_ENVIRONMENT", None)):
         """Initialize configuration for the specified environment
         
         Args:
             environment: Name of the environment (e.g., development, test, sit)
             
         Raises:
-            ConfigurationError: If config files cannot be found or parsed
+            ConfigurationError: If config files cannot be found or parsed, or no environment can be detected
         """
+        if environment is None:
+            raise ConfigurationError("Environment name must be specified")
+
         self.environment = environment
         self.config_dir = Path("config")
         self.global_config_path = self.config_dir / "application.toml"
