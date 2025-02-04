@@ -4,13 +4,14 @@ A command-line interface for managing Azure Function apps
 
 ## Prerequisites
 
-- Python 3.9 or higher
+- [Python 3.9 or higher](https://www.python.org/downloads/)
 - [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local)
-- Azure CLI (for deployment)
+- [Azure CLI (for deployment)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 
 ## Installation
 
-### Option 1: Install from Github repository
+### Recommended: Install from Github repository
+
 
 ```bash
 pip install git+https://github.com/maxvolumedev/legend_cli.git
@@ -18,7 +19,7 @@ pip install git+https://github.com/maxvolumedev/legend_cli.git
 
 This will install the `legend` command globally.
 
-### Option 2: Install from Source
+### Install from Source - For hacking on Legend CLI
 
 ```bash
 git clone https://github.com/maxvolumedev/legend_cli.git
@@ -62,25 +63,42 @@ This creates:
 
 ### legend generate (alias: g)
 
-Generates new code components.
+Generates new code components. Supports generating Azure Functions and GitHub workflows.
+
+#### Generate a Function
 
 ```bash
 legend generate function FUNCTION_NAME [--template TEMPLATE]
+# or using the alias
+legend g f FUNCTION_NAME [--template TEMPLATE]
 ```
 
 Options:
 - `FUNCTION_NAME`: Name of the function to generate (required)
 - `--template`, `-t`: Function template to use (default: "HTTP trigger")
 
-Example:
-```bash
-legend generate function process_order --template "Queue trigger"
-```
+This will:
+- Generate the function using the specified template
+- Create a test directory if it doesn't exist
+- Generate a test file at `test/functions/[FUNCTION_NAME]_test.py`
 
 To see available templates:
 ```bash
 func templates list
 ```
+
+#### Generate a GitHub Workflow
+
+```bash
+legend generate github-workflow ENVIRONMENT
+```
+
+Options:
+- `ENVIRONMENT`: Environment to configure workflow for (e.g., sit, uat, production)
+
+This will generate a GitHub Actions workflow file at `.github/workflows/deploy-[ENVIRONMENT].yml` configured for the specified environment.
+
+It will also create a service principal for authentication if necessary, and set the workflow secret in github.
 
 ### legend run (alias: r)
 
@@ -135,7 +153,7 @@ req = func.HttpRequest(
 )
 
 # Call your function
-response = my_function(req)
+response = app.my_function(req)
 
 # Check the response
 print(response.get_body().decode())
@@ -144,113 +162,81 @@ print(f"Status: {response.status_code}")
 
 ### legend provision (alias: p)
 
-Provisions required Azure resources for your function app.
+Provisions required Azure resources for an environment.
 
 ```bash
-legend provision [--environment ENV]
+legend provision ENVIRONMENT
 ```
 
 Options:
-- `--environment`, `-e`: Target environment (default: development)
-- `--skip-registration`, `-s`: Skip Azure provider registration (faster if you already have the providers registered)
+- `ENVIRONMENT`: Target environment (e.g. sit, uat, production)
+
+This will create the following resources:
+- Resource group
+- Storage account
+- App Service Plan
+- Function app
+- Key vault
+- Log Analytics Insights for the app
+
+It will also create a resource group for shared resource and a shared analytics workspace, if necessary.
 
 **Note**: The first time you run `legend provision`, it may take several minutes as it needs to register Azure resource providers. Subsequent runs will be faster.
 
 ### legend deploy
 
-Deploys your function app to Azure.
+Deploys your function app to an environment in Azure.
 
 ```bash
-legend deploy [--environment ENV]
+legend deploy ENVIRONMENT
 ```
 
 Options:
-- `--environment`, `-e`: Target environment (default: development)
+- `ENVIRONMENT`: Target environment (e.g. sit, uat, production)
 
 ### legend info
 
-Shows information about the deployed function app, including URLs and access keys.
+Shows information about the deployed function app, including function URLs and access keys.
 
 ```bash
-legend info [--environment ENV]
+legend info ENVIRONMENT
 ```
 
 Options:
-- `--environment`, `-e`: Target environment (default: development)
+- `ENVIRONMENT`: Target environment (e.g. sit, uat, production)
 
-Example output:
-```
-Function App: myapp-development
-Resource Group: myapp-group-development
-
-Host Keys:
-  🔑 Master Key: abc123...
-  🔑 default: def456...
-
-Functions:
-
-create_customer:
-  Invoke URL: https://myapp-development.azurewebsites.net/api/create_customer
-  URLs with keys:
-  🔑 App Master Key:
-    https://myapp-development.azurewebsites.net/api/create_customer?code=abc123...
-  🔑 App Default Key:
-    https://myapp-development.azurewebsites.net/api/create_customer?code=def456...
-  🔑 Function default:
-    https://myapp-development.azurewebsites.net/api/create_customer?code=xyz789...
-```
 
 ### legend destroy
 
-Deletes all Azure resources for an environment. Includes multiple confirmation steps to prevent accidental deletion.
+Deletes the resource group and all Azure resources for an environment. Includes multiple confirmation steps to prevent accidental deletion.
 
 ```bash
-legend destroy [ENVIRONMENT]
+legend destroy ENVIRONMENT
 ```
 
-Example:
-```bash
-legend destroy sit
+Options:
+- `ENVIRONMENT`: Target environment (e.g. sit, uat, production)
 
-🟡  WARNING: This will delete ALL resources in environment: sit
-Resource Group: myapp-group-sit
-Function App: myapp-sit
-
-This action cannot be undone!
-
-Are you sure you want to proceed? (y/N): y
-
-To confirm, please type the function app name (myapp-sit):
-> myapp-sit
-
-Deleting resource group myapp-group-sit...
-✅ Resource group deletion started
-
-Note: Deletion may take several minutes to complete
-Check the Azure portal for status
-```
 
 ## Configuration
 
 ### Environment Configuration
 
-The application supports multiple environments: development, test, sit, uat, and production. Configuration for each environment is stored in TOML files under the `config/` directory.
+By default, the generated application will be configured with multiple environments: development, test, sit, uat, and production. Configuration for each environment is stored in TOML files under the `config/` directory.
 
-To specify the environment:
+If invoking various commands via the legend CLI (e..g legend run, legend console, legend test, etc.), the correct environment will be set automatically.
+
+To manually specify the environment, if running code directly:
 ```bash
 export LEGEND_ENVIRONMENT=development  # Or test, sit, uat, production
 ```
-
 If not specified, the environment defaults to `development`.
 
 To access configuration in your code:
 ```python
-from lib.config import config
+config = Configuration()
 
-# Access configuration values
-key_vault_name = config.azure.key_vault_name
-api_base_url = config.api.base_url
-debug_mode = config.settings.debug
+endpoint = config.api.some_endpoint_url # e.g for environment-specific target API endpoints
 ```
 
 ### Project Structure
@@ -258,7 +244,7 @@ debug_mode = config.settings.debug
 ```
 my-function-app/
 ├── .github/
-│   └── workflows/           # GitHub Actions workflows
+│   └── workflows/          # GitHub Actions workflows
 ├── config/
 │   ├── application.toml    # Global configuration
 │   ├── development.toml    # Environment-specific configuration
@@ -270,9 +256,9 @@ my-function-app/
 ├── test/                   # Test files
 ├── .gitignore
 ├── function_app.py         # Azure Functions entry point
-├── host.json              # Azure Functions host configuration
-├── local.settings.json    # Local settings
-└── requirements.txt       # Python dependencies
+├── host.json               # Azure Functions host configuration
+├── local.settings.json     # Local settings
+└── requirements.txt        # Python dependencies
 ```
 
 ## License
