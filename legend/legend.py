@@ -3,7 +3,14 @@
 import sys
 import os
 import argparse
+from importlib import metadata
 from legend.commands import new, deploy, bootstrap, info, destroy, console, test, run, generate, provision
+
+try:
+    __version__ = metadata.version("legend-cli")
+except metadata.PackageNotFoundError:
+    # Package is not installed, fall back to _version.py
+    from legend._version import __version__
 
 def main():
     # Change to the directory where the legend command was invoked
@@ -17,8 +24,10 @@ def main():
     parser.add_argument('--verbose', '-v',
                        action='store_true',
                        help='Enable verbose output')
+    parser.add_argument("--version", action="version", version=__version__)
+    
 
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest='command', required=False)
 
     # Get all command instances
     commands = [

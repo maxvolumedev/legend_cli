@@ -1,8 +1,14 @@
 from setuptools import setup, find_packages
+import os
+
+# Read version from _version.py
+version = {}
+with open(os.path.join("legend", "_version.py")) as f:
+    exec(f.read(), version)
 
 setup(
     name="legend-cli",
-    version="0.1.4",
+    version=version["__version__"],
     description="A CLI for managing Azure Functions",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
