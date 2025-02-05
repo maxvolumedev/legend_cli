@@ -28,6 +28,8 @@ Generates a new Azure Function with associated test file.
 - `--authlevel`, `-a` (optional): Authorization level for the function (valid values: "function", "anonymous", "admin"; default: "function")
 - `--skip_test`, `-s` (optional): Whether to skip generating the test file (default: "false")
 
+**Note**: There is a bug in azure function tools that results in an error in the generated function code when specifying --authlevel on the command line. The binding is generated as `auth_level=func.AuthLevel.Function`, but the authlevel needs to be uppercase: `auth_level=func.AuthLevel.FUNCTION`.
+
 #### What It Does
 1. Creates a new function using Azure Functions Core Tools
 2. Generates a test file at `test/functions/[FUNCTION_NAME]_test.py`

@@ -59,8 +59,10 @@ my-first-app/
 Generate a new HTTP-triggered function. The `generate` command creates both the function and its test file:
 
 ```bash
-legend generate function hello_world --authlevel anonymous
+legend generate function hello_world
 ```
+
+And choose "ANONYMOUS" for the authentication level when prompted.
 
 This command:
 1. Adds a new function to your `function_app.py`
@@ -133,8 +135,10 @@ The console provides a full Python environment with:
 Add another function with simple authentication:
 
 ```bash
-legend add hello_world_authenticated --authlevel function
+legend add hello_world_authenticated
 ```
+
+And choose "FUNCTION" for the authentication level when prompted.
 
 **Note**: When running locally, this function does not require authentication. After we deploy our app, we will retrieve the keys for the live app using the `legend info` command.
 
