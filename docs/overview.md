@@ -97,22 +97,4 @@ Legend CLI can automatically set up and configure GitHub Actions workflows for y
 
 To get started with Legend CLI, check out our [Tutorial](tutorial.md) which will walk you through creating and deploying your first Azure Function app.
 
-## Command Reference
-
-### Project Setup
-- [bootstrap](bootstrap.md) - Install required dependencies
-- [new](new.md) - Create a new Azure Function app
-
-### Development
-- [generate](generate.md) - Generate new functions and workflows
-- [run](run.md) - Run the function app locally
-- [test](test.md) - Run the test suite
-- [console](console.md) - Start an interactive console
-
-### Infrastructure Management
-- [provision](provision.md) - Provision Azure resources
-- [destroy](destroy.md) - Clean up Azure resources
-
-### Deployment
-- [deploy](deploy.md) - Deploy to Azure
-- [info](info.md) - View deployment information
+For detailed information about available commands and their options, see the [Command Reference](command_reference.md).
