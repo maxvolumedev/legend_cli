@@ -8,8 +8,9 @@ The `generate` command creates new components in your Legend project. It can gen
 
 ```bash
 # Generate a function
-legend generate function FUNCTION_NAME [--template TEMPLATE]
-legend g f FUNCTION_NAME [--template TEMPLATE]  # Using aliases
+legend generate function FUNCTION_NAME [--template TEMPLATE] [--authlevel LEVEL] [--skip_test]
+# or using the aliases
+legend g f FUNCTION_NAME [--template TEMPLATE]
 
 # Generate a GitHub workflow
 legend generate github-workflow ENVIRONMENT
@@ -24,11 +25,14 @@ Generates a new Azure Function with associated test file.
 #### Arguments
 - `FUNCTION_NAME` (required): Name of the function to generate
 - `--template`, `-t` (optional): Function template to use (default: "HTTP trigger")
+- `--authlevel`, `-a` (optional): Authorization level for the function (valid values: "function", "anonymous", "admin"; default: "function")
+- `--skip_test`, `-s` (optional): Whether to skip generating the test file (default: "false")
+
+**Note**: There is a bug in azure function tools that results in an error in the generated function code when specifying --authlevel on the command line. The binding is generated as `auth_level=func.AuthLevel.Function`, but the authlevel needs to be uppercase: `auth_level=func.AuthLevel.FUNCTION`.
 
 #### What It Does
 1. Creates a new function using Azure Functions Core Tools
-2. Creates a test directory if it doesn't exist
-3. Generates a test file at `test/functions/[FUNCTION_NAME]_test.py`
+2. Generates a test file at `test/functions/[FUNCTION_NAME]_test.py`
 
 #### Available Templates
 View available templates with:

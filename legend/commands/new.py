@@ -23,6 +23,7 @@ class NewCommand(Command):
             "git+https://github.com/maxvolumedev/legend_cli.git",  # dev/test only; we don't need to deploy the legend cli
             "tomli>=2.0.1  # For reading TOML configuration files",
             "pytest>=7.4.0",
+            "pytest-cov>=4.0.0"
         ]
 
     def add_arguments(self, parser):
@@ -60,7 +61,7 @@ class NewCommand(Command):
         os.chdir(app_name)
 
         # Create project directories
-        for directory in [".github/workflows", "test", "lib", "config", "bin", "deployment"]:
+        for directory in [".github/workflows", "test", "test/functions","lib", "config", "bin", "deployment"]:
             os.makedirs(directory, exist_ok=True)
 
     def create_dependency_files(self):

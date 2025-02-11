@@ -1,11 +1,11 @@
 import subprocess
+import argparse
 import sys
 import os
 from .base import Command
 
-
 class TestCommand(Command):
-    """Command to run tests with pytest"""
+    """Run tests using pytest"""
 
     def __init__(self):
         super().__init__(
@@ -15,33 +15,20 @@ class TestCommand(Command):
         )
 
     def add_arguments(self, parser):
-        parser.add_argument('pytest_args', 
-                          nargs='*', 
+        parser.add_argument('pytest_args',
+                          nargs='*',
                           help='Arguments to pass to pytest')
 
     def handle(self, args):
-        # Use the appropriate Python executable based on OS
-        venv_python = ".venv/bin/python" if os.name != "nt" else ".venv\\Scripts\\python.exe"
-        
-        # Check if virtual environment exists
-        if not os.path.exists(venv_python):
-            self.error("Virtual environment not found. Run 'legend bootstrap' first")
-            return 1
-        
         # Set test environment
-        env = os.environ.copy()
-        env["LEGEND_ENVIRONMENT"] = "test"
+        os.environ['LEGEND_ENVIRONMENT'] = 'test'
+
+        # Build pytest command
+        pytest_cmd = [sys.executable, '-m', 'pytest']
         
-        try:
-            # Run pytest with -v for verbose output and --no-header to suppress pytest header
-            result = subprocess.run(
-                [venv_python, "-m", "pytest", "-v", "--no-header"] + args.pytest_args,
-                check=False,
-                env=env,
-                text=True
-            )
-            return result.returncode
-            
-        except Exception as e:
-            self.error(f"Failed to run tests: {e}")
-            return 1
+        # Add any additional pytest arguments
+        if args.pytest_args:
+            pytest_cmd.extend(args.pytest_args)
+
+        # Run pytest with all arguments
+        return subprocess.call(pytest_cmd)

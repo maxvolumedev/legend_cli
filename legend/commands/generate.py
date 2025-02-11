@@ -33,6 +33,12 @@ class GenerateCommand(Command):
             help='Function template to use (default: HTTP trigger)'
         )
         func_parser.add_argument(
+            '--authlevel',
+            choices=['function', 'anonymous', 'admin'],
+            default='function',
+            help='Authorization level for the function (default: function)'
+        )
+        func_parser.add_argument(
             '--skip_test',  
             default=False,
             action='store_true',
@@ -50,21 +56,29 @@ class GenerateCommand(Command):
         )
 
 
-    def generate_function(self, name: str, template: str, skip_test: bool = False):
+    def generate_function(self, name: str, template: str, authlevel: str = None, skip_test: bool = False):
         """Generate a new Azure Function.
         
         Args:
             name: Name of the function
             template: Template to use (e.g. 'HTTP trigger')
+            authlevel: Authorization level (function, anonymous, or admin)
+            skip_test: Whether to skip generating the test file
         """
-        self.info(f"Generating function: {name} (template: {template})")
+        self.info(f"Generating function: {name} (template: {template}, auth level: {authlevel.upper()})")
 
         # Run func new
         try:
-            self.run_subprocess(
-                ["func", "new", "--name", name, "--template", template],
-                capture_output=False  # Stream output
-            )
+            cmd = [
+                    "func",
+                    "new",
+                    "--name", name,
+                    "--template", template,                    
+                ]
+
+            if authlevel:
+                cmd.extend(["--authlevel", authlevel.upper()])
+            self.run_subprocess(cmd, capture_output=False)
         except Exception as e:
             self.error(f"Failed to generate function: {e}")
             return False        
@@ -155,7 +169,7 @@ class GenerateCommand(Command):
 
     def handle(self, args):
         if args.type in ['function', 'f']:
-            return 0 if self.generate_function(args.name, args.template) else 1
+            return 0 if self.generate_function(args.name, args.template, args.authlevel, args.skip_test) else 1
         elif args.type in ['github-workflow', 'w']:
             if not self.load_config(args.environment):
                 return 1

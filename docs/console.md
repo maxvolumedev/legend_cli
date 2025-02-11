@@ -141,7 +141,7 @@ req = func.HttpRequest(
 
 1. **Missing Virtual Environment**
    ```bash
-   legend bootstrap
+   python -m venv .venv   
    ```
 
 2. **Import Errors**

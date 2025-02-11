@@ -1,6 +1,6 @@
 # Getting Started with Legend CLI
 
-This tutorial will walk you through creating and deploying your first Azure Function app using Legend CLI. We'll create a simple HTTP-triggered function, test it locally, and deploy it to Azure.
+This tutorial will walk you through creating and deploying your first Azure Function app using Legend CLI. We'll create a simple HTTP-triggered function, test it locally, and deploy it to Azure. Legend CLI simplifies the entire development lifecycle of Azure Functions, from local development to production deployment.
 
 ## Prerequisites
 
@@ -11,28 +11,32 @@ Before you begin, make sure you have:
 
 ## Step 1: Installation
 
-Install Legend CLI using pip:
+Install Legend CLI using pip.
 
 ```bash
 pip install git+https://github.com/maxvolumedev/legend_cli.git
 ```
 
-Verify the installation:
+Verify the installation by checking the version:
 ```bash
 legend --version
 ```
 
 ## Step 2: Bootstrap Your Environment
 
-Run the bootstrap command to check and install any missing dependencies:
+Legend CLI includes a bootstrap command that helps you set up your development environment. The `bootstrap` command checks for required dependencies (pip, git, Homebrew, Azure CLI, Azure Function Core Tools, and GitHub CLI) and offers instructions on how to install them.
+
+Run the bootstrap command:
 
 ```bash
 legend bootstrap
 ```
 
+Follow any prompts to install missing dependencies.
+
 ## Step 3: Create a New Function App
 
-Create a new function app project:
+Create a new function app project. The `new` command sets up a complete project structure with all necessary files and configurations:
 
 ```bash
 legend new my-first-app
@@ -42,24 +46,29 @@ cd my-first-app
 This creates a new project with the following structure:
 ```
 my-first-app/
-├── .github/workflows/    # CI/CD workflows
-├── config/              # Configuration files
-├── lib/                 # Shared code
-├── test/               # Test files
-└── functions/          # Azure Functions
+├── .github/workflows/    # CI/CD workflows for automated deployments
+├── config/              # Environment-specific configurations (dev, sit, uat, prod)
+├── lib/                 # Shared code and utilities
+├── test/               # Test files for your functions
+└── functions/          # Your Azure Functions live here
+└── function_app.py     # The main entry point for your function app
 ```
 
 ## Step 4: Generate Your First Function
 
-Generate a new HTTP-triggered function:
+Generate a new HTTP-triggered function. The `generate` command creates both the function and its test file:
 
 ```bash
 legend generate function hello_world
 ```
 
-This creates:
-- A new function in your project
-- A corresponding test file
+And choose "ANONYMOUS" for the authentication level when prompted.
+
+This command:
+1. Adds a new function to your `function_app.py`
+2. Generates a test file in `test/functions/hello_world_test.py`
+
+**Note**: There is currently no check for existence of a function with the same name. If you call legend g function more than once with the same name, a function with the same name will be generated. This will cause an error when you run the app.
 
 ## Step 5: Test Locally
 
@@ -69,23 +78,37 @@ First, let's run the test suite:
 legend test
 ```
 
+This command:
+- Runs all tests in the `test/` directory
+
 Then start the local development server:
 
 ```bash
 legend run
 ```
 
-Your function will be available at `http://localhost:7071/api/hello_world`
+This command starts a local server using Azure Functions Core Tools and exposes your function at `http://localhost:7071/api/hello_world`
+
+Open the URL in a browser, or try it out on the command line:
+```bash
+curl http://localhost:7071/api/hello_world?name=Legend
+```
 
 ## Step 6: Interactive Development
 
-Legend CLI provides an interactive console for development:
+Legend CLI includes a powerful interactive console for development and debugging. This is particularly useful for:
+- Testing function behavior
+- Debugging issues
+- Exploring Azure SDK functionality
+- Prototyping new features
+
+Launch the interactive console:
 
 ```bash
 legend console
 ```
 
-Try out your function:
+Try out your function with this example:
 ```python
 # Create a mock request
 req = func.HttpRequest(
@@ -102,97 +125,172 @@ response = app.hello_world(req)
 print(response.get_body().decode())
 ```
 
-## Step 7: Provision Azure Resources
+The console provides a full Python environment with:
+- Your function app pre-loaded
+- Azure SDK libraries available
+- Access to your configuration
 
-Before deploying, we need to provision Azure resources:
+## Step 7: Add a Function with Simple Authentication
+
+Add another function with simple authentication:
+
+```bash
+legend add hello_world_authenticated
+```
+
+And choose "FUNCTION" for the authentication level when prompted.
+
+**Note**: When running locally, this function does not require authentication. After we deploy our app, we will retrieve the keys for the live app using the `legend info` command.
+
+## Step 8: Provision Azure Resources
+
+Before deploying, we need to provision Azure resources. The `provision` command handles this automatically:
 
 ```bash
 legend provision sit
 ```
 
-This creates all necessary Azure resources in the SIT environment:
-- Resource group
-- Storage account
-- App Service Plan
-- Function app
-- Key vault
-- Application Insights
+This command:
+1. Creates a resource group for isolation
+2. Sets up a storage account for function state
+3. Provisions an App Service Plan
+4. Creates a Function App instance
+5. Configures Key Vault for secrets
+6. Sets up Application Insights for monitoring
 
-## Step 8: Deploy to Azure
+All resources are tagged and named according to your project's configuration.
 
-Deploy your function app:
+## Step 9: Deploy to Azure
+
+Deploy your function app to Azure. The `deploy` command handles the entire deployment process:
 
 ```bash
 legend deploy sit
 ```
 
-## Step 9: View Deployment Information
+This command:
+1. Validates your code and configuration
+2. Packages your function app
+3. Uploads the package to Azure
+4. Updates application settings
+5. Restarts the function app
+6. Verifies the deployment
 
-Check your deployment details:
+## Step 10: View Function URLs (and Authentication Keys)
+
+Check your deployment details using the `info` command:
 
 ```bash
 legend info sit
 ```
 
-This shows:
-- Function URLs
-- Access keys
-- Resource information
+This shows all function URLs for the app and associated access keys
 
-## Step 10: Publish project to GitHub
+## Step 11: Publish Project to GitHub
 
-1. Create a new repository on GitHub for your project
+Setting up version control is crucial for team development and CI/CD. Follow these steps:
 
-2. Initialize git in your project directory if you haven't already:
+1. Create a new repository on GitHub for your project (private in this case, or use --public):
 ```bash
-git init
+gh repo create my-first-app --private
 ```
 
-3. Add your GitHub repository as the remote origin:
+1. Add your GitHub repository as the remote origin:
 ```bash
 git remote add origin https://github.com/username/your-repo-name.git
 ```
 
-4. Stage and commit your files:
+1. Stage and commit your files:
 ```bash
 git add .
 git commit -m "Initial commit"
 ```
 
-5. Push your code to GitHub:
+1. Push your code to GitHub:
 ```bash
 git push -u origin main
 ```
 
-## Step 11: Set Up CI/CD
+This sets up version control and prepares your project for CI/CD.
 
-Generate a GitHub Actions workflow:
+## Step 12: Set Up CI/CD
+
+Legend CLI can automatically configure GitHub Actions for continuous integration and deployment:
 
 ```bash
 legend generate github-workflow sit
 ```
 
-This creates a workflow that will:
-1. Run tests
-2. Provision resources (if needed)
-3. Deploy your application
+Create a `sit` branch, commit and push your changes:
+```bash
+git checkout -b sit
+git add --all
+git commit -m "Ready for deployment"
+git push -u origin sit
+```
+
+This command:
+1. Creates a workflow file in `.github/workflows/`
+2. Sets up Azure credentials securely
+3. Configures the following pipeline stages:
+   - Run tests and code quality checks
+   - Provision or update Azure resources
+   - Deploy your application
+   - Verify the deployment
+
+The workflow runs automatically on pushes to your main branch.
 
 ## Next Steps
 
-Now that you have your first function app up and running, you might want to:
+Now that you have your first function app up and running, here are some ways to expand your application:
 
 1. Add more functions using `legend generate function`
+   - Create different types of triggers (HTTP, Timer, Queue)
+   - Implement business logic
+   - Add proper error handling
+
 2. Set up additional environments (uat, production)
+   - Configure environment-specific settings
+   - Set up proper access controls
+   - Implement staging and promotion workflows
+
 3. Customize your configuration in `config/`
-4. Explore the [command reference docs](overview.md#getting-started)
+   - Add application settings
+   - Configure scaling rules
+   - Set up custom domains
+
+4. Explore the [Command Reference](command_reference.md) for advanced features and options
 
 ## Troubleshooting
 
 If you encounter any issues:
 
-1. Use the `--verbose` flag for more detailed output
-2. Check the logs in Azure Portal
-3. Use `legend console` for interactive debugging
-4. Ensure all prerequisites are properly installed
+1. Use the `--verbose` flag for detailed logging:
+   ```bash
+   legend deploy sit --verbose
+   ```
 
-Remember, you can always use `legend --help` or `legend COMMAND --help` for command-specific information.
+2. Check Azure Portal for:
+   - Function app logs
+   - Application Insights metrics
+   - Resource health status
+
+3. Use `legend console` for interactive debugging:
+   - Test function behavior
+   - Verify configurations
+   - Check Azure connectivity
+
+4. Ensure all prerequisites are properly installed:
+   ```bash
+   legend bootstrap --verbose
+   ```
+
+Remember, you can always use `legend --help` or `legend COMMAND --help` for command-specific information and examples.
+
+## Support
+
+If you need help:
+1. Check the [Command Reference](command_reference.md)
+2. Open an issue on GitHub
+3. Use the `--verbose` flag to get more information
+4. Join our community discussions

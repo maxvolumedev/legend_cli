@@ -7,12 +7,12 @@ The `test` command runs your test suite using pytest, automatically configuring 
 ## Usage
 
 ```bash
-legend test [PYTEST_ARGS...]
+legend test -- [PYTEST_ARGS...]
 ```
 
 ## Arguments
 
-- `PYTEST_ARGS` (optional): Any additional arguments to pass directly to pytest
+- `PYTEST_ARGS` (optional): Arguments to pass to pytest. All arguments after `--` are passed directly to pytest, so you can use any pytest arguments like `--cov`, `-v`, `-k`, etc.
 
 ## What It Does
 
@@ -20,13 +20,6 @@ legend test [PYTEST_ARGS...]
 2. Verifies the virtual environment exists
 3. Runs pytest with your specified arguments
 4. Displays test results and coverage information
-
-## Features
-
-- **Automatic Environment**: Sets `LEGEND_ENVIRONMENT=test`
-- **Virtual Environment**: Uses project's virtual environment
-- **Pytest Integration**: Full access to pytest features
-- **Cross-Platform**: Works on Windows and Unix-based systems
 
 ## Examples
 
@@ -37,36 +30,27 @@ legend test
 
 Run specific test file:
 ```bash
-legend test test/functions/hello_world_test.py
+legend test -- test/functions/hello_world_test.py
 ```
 
 Run tests with specific marker:
 ```bash
-legend test -m "integration"
+legend test -- -m "integration"
 ```
 
 Run tests with coverage:
 ```bash
-legend test --cov=functions
+legend test -- --cov
+```
+
+Run tests with coverage for specific package:
+```bash
+legend test -- --cov=functions
 ```
 
 Run tests in verbose mode:
 ```bash
-legend test -v
-```
-
-## Test Structure
-
-Legend CLI creates a standard test structure:
-```
-my-function-app/
-└── test/
-    ├── conftest.py         # Shared pytest fixtures
-    ├── functions/          # Function-specific tests
-    │   ├── __init__.py
-    │   └── hello_world_test.py
-    └── lib/               # Library code tests
-        └── __init__.py
+legend test -- -v
 ```
 
 ## Writing Tests
@@ -92,40 +76,6 @@ def test_hello_world():
     assert response.status_code == 200
     assert "Hello Test!" in response.get_body().decode()
 ```
-
-## Common Issues
-
-1. **Missing Virtual Environment**
-   ```bash
-   legend bootstrap
-   ```
-
-2. **Import Errors**
-   - Ensure `PYTHONPATH` includes your project root
-   - Check for missing dependencies
-   - Verify test file naming (`_test.py` suffix)
-
-3. **Configuration Issues**
-   - Check `config/test.toml`
-   - Verify environment variables
-   - Use pytest's `-v` flag for more details
-
-## Best Practices
-
-1. **Test Organization**
-   - Use meaningful test names
-   - Group related tests with classes
-   - Use pytest fixtures for setup/teardown
-
-2. **Test Coverage**
-   - Aim for high coverage
-   - Use `--cov` flag to measure
-   - Add coverage configuration in `pytest.ini`
-
-3. **Test Types**
-   - Unit tests for functions
-   - Integration tests for workflows
-   - End-to-end tests for full scenarios
 
 ## Related Commands
 

@@ -88,19 +88,7 @@
                 },
                 "accessPolicies": []
             }
-        },
-        {
-            "type": "Microsoft.OperationalInsights/workspaces",
-            "apiVersion": "2021-06-01",
-            "name": "[parameters('logAnalyticsWorkspaceName')]",
-            "location": "[parameters('location')]",
-            "properties": {
-                "sku": {
-                    "name": "PerGB2018"
-                },
-                "retentionInDays": 30
-            }
-        },
+        },        
         {
             "type": "Microsoft.Insights/components",
             "apiVersion": "2020-02-02",
@@ -109,11 +97,9 @@
             "kind": "web",
             "properties": {
                 "Application_Type": "web",
-                "WorkspaceResourceId": "[parameters('logAnalyticsWorkspaceName'))]"
+                "WorkspaceResourceId": "[parameters('logAnalyticsWorkspaceName')]"
             },
-            "dependsOn": [
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
-            ]
+            "dependsOn": []
         },
         {
             "type": "Microsoft.Web/sites",
