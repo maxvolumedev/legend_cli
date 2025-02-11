@@ -154,12 +154,11 @@ class GenerateCommand(Command):
         
 
     def handle(self, args):
-        if not self.load_config(args.environment):
-            return 1
-
         if args.type in ['function', 'f']:
             return 0 if self.generate_function(args.name, args.template) else 1
         elif args.type in ['github-workflow', 'w']:
+            if not self.load_config(args.environment):
+                return 1
             return 0 if self.generate_github_workflow(args.environment) else 1
         else:
             self.error(f"Unknown generation type: {args.type}")
