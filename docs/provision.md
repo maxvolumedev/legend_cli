@@ -4,6 +4,18 @@ The `provision` command creates and configures all necessary Azure resources for
 
 **Alias**: `p`
 
+** Note **:
+Legend new also generates a correpsonding set of terraform scripts and parameter fils that can be used to manage the infrastructure instead of ARM.
+
+To use:
+
+```bash
+cd deployment
+terraform init
+terraform plan -var-file=sit.tfvars
+terraform apply -var-file=sit.tfvars
+```
+
 ## Usage
 
 ```bash

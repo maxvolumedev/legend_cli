@@ -54,6 +54,7 @@ pip install -e .
 - [run](docs/run.md) - Run the function app locally
 - [test](docs/test.md) - Run the test suite
 - [console](docs/console.md) - Start an interactive console
+- [env](docs/env.md) - set environment variables for an given configuration
 
 ### Infrastructure Management
 - [provision](docs/provision.md) - Provision Azure resources

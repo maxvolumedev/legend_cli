@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 from importlib import metadata
-from legend.commands import new, deploy, bootstrap, info, destroy, console, test, run, generate, provision
+from legend.commands import new, deploy, bootstrap, info, destroy, console, test, run, generate, provision, env
 
 try:
     __version__ = metadata.version("legend-cli")
@@ -41,6 +41,7 @@ def main():
         bootstrap.BootstrapCommand(),
         info.InfoCommand(),
         destroy.DestroyCommand(),
+        env.EnvCommand(),
     ]
     
     # Map commands by their names and aliases

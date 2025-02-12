@@ -62,8 +62,8 @@ class Configuration:
                 env_config = tomli.load(f)
             
             # Merge configurations (environment config takes precedence)
-            merged = self._deep_merge(global_config, env_config)
-            return self._dict_to_namespace(merged)
+            self.merged = self._deep_merge(global_config, env_config)
+            return self._dict_to_namespace(self.merged)
             
         except FileNotFoundError as e:
             config_file = Path(e.filename).name

@@ -93,6 +93,8 @@ class NewCommand(Command):
             }
         )
 
+        self.render_template("deployment/terraform.tf", f"deployment/terraform.tf")
+
         # Create environment configuration files
         environments = ["development", "test", "sit", "uat", "production"]
         for environment in environments:
@@ -112,9 +114,7 @@ class NewCommand(Command):
             if environment in ["development", "test"]:
                 continue
 
-            self.render_template("deployment/azuredeploy.json", f"deployment/azuredeploy-{environment}.json", {} )
-            self.render_template("deployment/azuredeploy.parameters.json", f"deployment/azuredeploy-{environment}.parameters.json",
-                {
+            deployment_params = {
                     "app_name": normalized_name,
                     "environment": environment,
                     "resource_group": f"{normalized_name}-group-{environment}",
@@ -123,8 +123,20 @@ class NewCommand(Command):
                     "app_service_plan": f"{normalized_name}-plan-{environment}",
                     "key_vault_name": names.get_keyvault_name(normalized_name, environment),
                     "location": location,
+                    "resource_group_name": f"{normalized_name}-group-{environment}",
+                    "shared_resource_group_name": f"shared-rg-{location}-{environment}",
+                    "log_analytics_workspace_name": f"legend-{normalized_name}-analytics-{environment}",
+                    "apim_name": f"legend-{normalized_name}-apim-{environment}",
                 }
-            )          
+
+            # ARM scripts
+            self.render_template("deployment/azuredeploy.json", f"deployment/azuredeploy-{environment}.json", deployment_params )
+            self.render_template("deployment/azuredeploy.parameters.json", f"deployment/azuredeploy-{environment}.parameters.json",
+                deployment_params
+            )
+
+            # Terraform scripts            
+            self.render_template("deployment/terraform.tfvars", f"deployment/terraform-{environment}.tfvars", deployment_params)    
 
     def copy_lib_templates(self, app_name: str):
         """Copy library templates to the project."""

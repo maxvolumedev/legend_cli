@@ -39,26 +39,32 @@ class BootstrapCommand(Command):
             Dependency(
                 name="pip",
                 check_cmd="pip3 --version",
-                install_cmd="python3 -m ensurepip --upgrade",
+                install_cmd=["python3 -m ensurepip --upgrade"],
                 homepage="https://pip.pypa.io",
             ),
             Dependency(
                 name="Azure Functions Core Tools",
                 check_cmd="func --version",
-                install_cmd="brew install azure-functions-core-tools@4",
+                install_cmd=["brew install azure-functions-core-tools@4"],
                 homepage="https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local",
             ),
             Dependency(
                 name="Azure CLI",
                 check_cmd="az --version",
-                install_cmd="brew install azure-cli",
+                install_cmd=["brew install azure-cli"],
                 homepage="https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",
             ),
             Dependency(
                 name="Github CLI",
                 check_cmd="gh --version",
-                install_cmd="brew install gh",
+                install_cmd=["brew install gh"],
                 homepage="https://github.com/cli/cli",
+            ),
+            Dependency(
+                name="Terraform",
+                check_cmd="terraform --version",
+                install_cmd=["brew tap hashicorp/tap", "brew install hashicorp/tap/terraform"],
+                homepage="https://www.terraform.io",
             ),
         ]
 
@@ -82,12 +88,15 @@ class BootstrapCommand(Command):
         """Install a dependency"""
         if not dep.install_cmd:
             return False
-            
-        result = self.run_subprocess(
-            dep.install_cmd.split(),
-            check=True,
-            capture_output=True
-        )
+
+        for cmd in Array(dep.install_cmd):
+            result = self.run_subprocess(
+                cmd.split(),
+                check=True,
+                capture_output=True
+            )
+            if result is not None:
+                break
         return result is not None
 
     def needs_legend_project(self) -> bool:
